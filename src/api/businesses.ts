@@ -57,7 +57,7 @@ export const businessesApi = {
 
   async billingPdf(id: string): Promise<void> {
     const token = localStorage.getItem("nextgen_admin_token");
-    const res = await fetch(`http://localhost:8001/v1/admin/admin/businesses/${id}/billing/pdf`, {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "https://admin-api.nextgenintelligence.co.za"}/v1/admin/admin/businesses/${id}/billing/pdf`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error("Failed to generate billing PDF");

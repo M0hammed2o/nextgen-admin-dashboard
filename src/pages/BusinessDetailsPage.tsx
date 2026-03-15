@@ -133,7 +133,7 @@ export default function BusinessDetailsPage() {
           variant="outline"
           size="sm"
           className="gap-1.5"
-          onClick={() => window.open("http://localhost:8081", "_blank")}
+          onClick={() => window.open("https://app.nextgenintelligence.co.za", "_blank")}
         >
           <ExternalLink className="w-3.5 h-3.5" /> Business Dashboard
         </Button>

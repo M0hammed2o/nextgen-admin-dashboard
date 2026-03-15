@@ -11,8 +11,8 @@ const navItems = [
 ];
 
 const externalLinks = [
-  { title: "Business Portal", url: "http://localhost:8081", icon: ExternalLink },
-  { title: "Staff Login", url: "http://localhost:8081/staff-login", icon: ExternalLink },
+  { title: "Business Portal", url: "https://app.nextgenintelligence.co.za", icon: ExternalLink },
+  { title: "Staff Login", url: "https://staff.nextgenintelligence.co.za", icon: ExternalLink },
 ];
 
 export function AdminSidebar() {
