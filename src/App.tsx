@@ -10,6 +10,9 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import BusinessesPage from "./pages/BusinessesPage";
 import BusinessDetailsPage from "./pages/BusinessDetailsPage";
+import AiEmailsPage from "./pages/AiEmailsPage";
+import AiEmailLeadsPage from "./pages/AiEmailLeadsPage";
+import AiEmailLeadDetailPage from "./pages/AiEmailLeadDetailPage";
 import UsagePage from "./pages/UsagePage";
 import AuditPage from "./pages/AuditPage";
 import NotFound from "./pages/NotFound";
@@ -35,6 +38,9 @@ const App = () => (
             <Route path="/" element={<DashboardPage />} />
             <Route path="/businesses" element={<BusinessesPage />} />
             <Route path="/businesses/:id" element={<BusinessDetailsPage />} />
+            <Route path="/ai-emails" element={<AiEmailsPage />} />
+            <Route path="/ai-emails/leads" element={<AiEmailLeadsPage />} />
+            <Route path="/ai-emails/leads/:id" element={<AiEmailLeadDetailPage />} />
             <Route path="/usage" element={<UsagePage />} />
             <Route path="/audit" element={<AuditPage />} />
           </Route>

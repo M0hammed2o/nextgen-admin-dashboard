@@ -1,11 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Building2, BarChart3, ScrollText, LogOut, Zap, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Building2, Mail, BarChart3, ScrollText, LogOut, Zap, ExternalLink } from "lucide-react";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", path: "/", icon: LayoutDashboard },
   { title: "Businesses", path: "/businesses", icon: Building2 },
+  { title: "AI Emails", path: "/ai-emails", icon: Mail },
   { title: "Usage", path: "/usage", icon: BarChart3 },
   { title: "Audit Log", path: "/audit", icon: ScrollText },
 ];
