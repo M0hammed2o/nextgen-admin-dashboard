@@ -7,6 +7,8 @@ import type {
   SetLimitsRequest,
   CreateOwnerRequest,
   CreateOwnerResponse,
+  BusinessUserSummary,
+  ResetPasswordResponse,
   WhatsAppTestRequest,
   WhatsAppTestResponse,
 } from "@/types/business";
@@ -49,6 +51,14 @@ export const businessesApi = {
 
   createOwner(id: string, data: CreateOwnerRequest): Promise<CreateOwnerResponse> {
     return apiClient.post<CreateOwnerResponse>(`/v1/admin/admin/businesses/${id}/owner`, data);
+  },
+
+  listUsers(id: string): Promise<BusinessUserSummary[]> {
+    return apiClient.get<BusinessUserSummary[]>(`/v1/admin/admin/businesses/${id}/users`);
+  },
+
+  resetPassword(id: string, userId: string): Promise<ResetPasswordResponse> {
+    return apiClient.post<ResetPasswordResponse>(`/v1/admin/admin/businesses/${id}/users/${userId}/reset-password`);
   },
 
   whatsappTestSend(id: string, data: WhatsAppTestRequest): Promise<WhatsAppTestResponse> {

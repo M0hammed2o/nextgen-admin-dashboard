@@ -10,9 +10,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   businessId: string;
+  onSuccess?: () => void;
 }
 
-export function CreateOwnerModal({ open, onClose, businessId }: Props) {
+export function CreateOwnerModal({ open, onClose, businessId, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", full_name: "", role: "OWNER" as "OWNER" | "MANAGER" });
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export function CreateOwnerModal({ open, onClose, businessId }: Props) {
       const res = await businessesApi.createOwner(businessId, form);
       setCreatedEmail(res.email);
       setCreatedPassword(res.temporary_password);
+      onSuccess?.();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally {

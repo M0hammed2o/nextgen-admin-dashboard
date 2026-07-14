@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { businessesApi } from "@/api/businesses";
-import type { Business } from "@/types/business";
+import type { Business, BusinessUserSummary } from "@/types/business";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Edit, Ban, Unlock, Gauge, UserPlus, MessageSquare, FileDown, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Edit, Ban, Unlock, Gauge, UserPlus, MessageSquare, FileDown, ExternalLink, KeyRound } from "lucide-react";
 import { EditBusinessModal } from "@/components/modals/EditBusinessModal";
 import { SuspendModal } from "@/components/modals/SuspendModal";
 import { UnsuspendModal } from "@/components/modals/UnsuspendModal";
 import { SetLimitsModal } from "@/components/modals/SetLimitsModal";
 import { CreateOwnerModal } from "@/components/modals/CreateOwnerModal";
 import { WhatsAppTestModal } from "@/components/modals/WhatsAppTestModal";
+import { toast } from "sonner";
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -37,10 +39,43 @@ export default function BusinessDetailsPage() {
   const [ownerOpen, setOwnerOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
 
+  const [users, setUsers] = useState<BusinessUserSummary[]>([]);
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [resetResult, setResetResult] = useState<{ email: string | null; password: string } | null>(null);
+
   const fetch = () => {
     if (!id) return;
     setLoading(true);
     businessesApi.get(id).then(setBusiness).catch((e) => setError(e.message)).finally(() => setLoading(false));
+  };
+
+  const fetchUsers = () => {
+    if (!id) return;
+    businessesApi.listUsers(id).then(setUsers).catch(() => {});
+  };
+
+  useEffect(() => { fetchUsers(); }, [id]);
+
+  const handleResetPassword = async (u: BusinessUserSummary) => {
+    if (!id) return;
+    if (!window.confirm(`Reset ${u.staff_name || u.email}'s password? Their current sessions will be signed out immediately.`)) {
+      return;
+    }
+    setResettingId(u.id);
+    try {
+      const res = await businessesApi.resetPassword(id, u.id);
+      setResetResult({ email: res.email, password: res.temporary_password });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset password");
+    } finally {
+      setResettingId(null);
+    }
+  };
+
+  const handleCopyResetPassword = () => {
+    if (!resetResult) return;
+    navigator.clipboard.writeText(resetResult.password);
+    toast.success("Copied to clipboard");
   };
 
   useEffect(() => { fetch(); }, [id]);
@@ -175,12 +210,80 @@ export default function BusinessDetailsPage() {
         </div>
       </div>
 
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h3 className="text-sm font-semibold mb-3">Owners & Managers</h3>
+        {users.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No owner/manager logins yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Email</th>
+                  <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Role</th>
+                  <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Status</th>
+                  <th className="text-right py-2 font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-b border-border/50 last:border-0">
+                    <td className="py-2 pr-4">{u.staff_name || "—"}</td>
+                    <td className="py-2 pr-4 font-mono text-xs">{u.email}</td>
+                    <td className="py-2 pr-4 capitalize">{u.role.toLowerCase()}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${u.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                        {u.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="py-2 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={resettingId === u.id}
+                        onClick={() => handleResetPassword(u)}
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        {resettingId === u.id ? "Resetting…" : "Reset Password"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <EditBusinessModal open={editOpen} onClose={() => setEditOpen(false)} business={business} onSuccess={handleUpdate} />
       <SuspendModal open={suspendOpen} onClose={() => setSuspendOpen(false)} businessId={business.id} onSuccess={handleUpdate} />
       <UnsuspendModal open={unsuspendOpen} onClose={() => setUnsuspendOpen(false)} businessId={business.id} businessName={business.name} onSuccess={handleUpdate} />
       <SetLimitsModal open={limitsOpen} onClose={() => setLimitsOpen(false)} business={business} onSuccess={handleUpdate} />
-      <CreateOwnerModal open={ownerOpen} onClose={() => setOwnerOpen(false)} businessId={business.id} />
+      <CreateOwnerModal open={ownerOpen} onClose={() => setOwnerOpen(false)} businessId={business.id} onSuccess={fetchUsers} />
       <WhatsAppTestModal open={whatsappOpen} onClose={() => setWhatsappOpen(false)} businessId={business.id} />
+
+      <Dialog open={!!resetResult} onOpenChange={(v) => !v && setResetResult(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Password Reset</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Share this temporary password with <span className="font-medium text-foreground">{resetResult?.email}</span> now
+              — it will not be shown again. Their sessions have been signed out, and they'll be asked to set a new password on next login.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md border border-input bg-muted px-3 py-2 font-mono text-sm">
+                {resetResult?.password}
+              </code>
+              <Button type="button" variant="outline" onClick={handleCopyResetPassword}>Copy</Button>
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => setResetResult(null)}>Done</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

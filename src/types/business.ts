@@ -74,6 +74,23 @@ export interface CreateOwnerResponse {
   temporary_password: string;
 }
 
+export interface BusinessUserSummary {
+  id: string;
+  email: string | null;
+  staff_name: string | null;
+  role: string;
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface ResetPasswordResponse {
+  id: string;
+  email: string | null;
+  // Shown once, in this response only.
+  temporary_password: string;
+}
+
 export interface WhatsAppTestRequest {
   to: string;
   text: string;
