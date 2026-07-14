@@ -32,11 +32,12 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
     daily_llm_call_limit: 400,
     daily_order_limit: 200,
     owner_email: "",
-    owner_password: "",
     owner_full_name: "",
   });
   const [slugManual, setSlugManual] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [createdOwnerPassword, setCreatedOwnerPassword] = useState<string | null>(null);
+  const [createdOwnerEmail, setCreatedOwnerEmail] = useState("");
 
   const set = useCallback((key: string, value: string | number) => {
     setForm((prev) => {
@@ -58,10 +59,18 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Required";
     if (!form.owner_email.trim()) e.owner_email = "Required";
-    if (!form.owner_password || form.owner_password.length < 8) e.owner_password = "Min 8 characters";
     if (!form.owner_full_name.trim()) e.owner_full_name = "Required";
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const resetForm = () => {
+    setForm({
+      name: "", slug: "", timezone: "Africa/Johannesburg", plan: "STARTER",
+      whatsapp_phone_number_id: "", daily_message_limit: 800, daily_llm_call_limit: 400,
+      daily_order_limit: 200, owner_email: "", owner_full_name: "",
+    });
+    setSlugManual(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,23 +81,61 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
       // Send slug only if non-empty, else backend auto-generates
       const payload = { ...form };
       if (!payload.slug.trim()) delete (payload as Record<string, unknown>).slug;
-      await businessesApi.create(payload);
+      const biz = await businessesApi.create(payload);
       toast.success("Business created successfully");
       onSuccess();
-      onClose();
-      // Reset form
-      setForm({
-        name: "", slug: "", timezone: "Africa/Johannesburg", plan: "STARTER",
-        whatsapp_phone_number_id: "", daily_message_limit: 800, daily_llm_call_limit: 400,
-        daily_order_limit: 200, owner_email: "", owner_password: "", owner_full_name: "",
-      });
-      setSlugManual(false);
+      if (biz.owner_temporary_password) {
+        setCreatedOwnerEmail(form.owner_email);
+        setCreatedOwnerPassword(biz.owner_temporary_password);
+      } else {
+        onClose();
+        resetForm();
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to create business");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCopy = () => {
+    if (!createdOwnerPassword) return;
+    navigator.clipboard.writeText(createdOwnerPassword);
+    toast.success("Copied to clipboard");
+  };
+
+  const handleDone = () => {
+    setCreatedOwnerPassword(null);
+    setCreatedOwnerEmail("");
+    onClose();
+    resetForm();
+  };
+
+  // ── One-time owner temporary password reveal ──────────────────────────────
+  if (createdOwnerPassword) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => !v && handleDone()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Business & Owner Login Created</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Share this temporary password with <span className="font-medium text-foreground">{createdOwnerEmail}</span> now
+              — it will not be shown again. They'll be asked to set a new password on first login.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md border border-input bg-muted px-3 py-2 font-mono text-sm">
+                {createdOwnerPassword}
+              </code>
+              <Button type="button" variant="outline" onClick={handleCopy}>Copy</Button>
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleDone}>Done</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -165,15 +212,13 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
             {errors.owner_email && <p className="text-xs text-destructive">{errors.owner_email}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label>Password</Label>
-            <Input type="password" placeholder="Min 8 characters" value={form.owner_password} onChange={(e) => set("owner_password", e.target.value)} />
-            {errors.owner_password && <p className="text-xs text-destructive">{errors.owner_password}</p>}
-          </div>
-          <div className="space-y-1.5">
             <Label>Full Name</Label>
             <Input placeholder="John Doe" value={form.owner_full_name} onChange={(e) => set("owner_full_name", e.target.value)} />
             {errors.owner_full_name && <p className="text-xs text-destructive">{errors.owner_full_name}</p>}
           </div>
+          <p className="text-xs text-muted-foreground">
+            A temporary password will be generated automatically and shown once after creation.
+          </p>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>

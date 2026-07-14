@@ -17,6 +17,9 @@ export interface Business {
   daily_order_limit: number;
   last_webhook_received_at: string | null;
   created_at: string;
+  // Present only in the response right after creation (owner_email was set) —
+  // shown once, never returned by GET/PATCH.
+  owner_temporary_password?: string | null;
 }
 
 export interface CreateBusinessRequest {
@@ -29,7 +32,6 @@ export interface CreateBusinessRequest {
   daily_llm_call_limit: number;
   daily_order_limit: number;
   owner_email: string;
-  owner_password: string;
   owner_full_name: string;
 }
 
@@ -56,7 +58,6 @@ export interface SetLimitsRequest {
 
 export interface CreateOwnerRequest {
   email: string;
-  password: string;
   full_name: string;
   role: "OWNER" | "MANAGER";
 }
@@ -69,6 +70,8 @@ export interface CreateOwnerResponse {
   business_id: string;
   is_active: boolean;
   created_at: string;
+  // Shown once, in this response only.
+  temporary_password: string;
 }
 
 export interface WhatsAppTestRequest {
