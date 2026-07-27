@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { auditApi } from "@/api/audit";
 import type { AuditRecord } from "@/types/audit";
 import { formatDateTime } from "@/lib/format";
@@ -74,8 +74,13 @@ export default function AuditPage() {
               </thead>
               <tbody>
                 {records.map((r) => (
-                  <>
-                    <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  // A shorthand <>...</> fragment can't carry a `key` prop --
+                  // this was silently missing (React only warns, it doesn't
+                  // break rendering with a handful of rows) until this page
+                  // was actually loaded with real Barn Owl audit data in a
+                  // real browser, which is exactly what surfaced it here.
+                  <Fragment key={r.id}>
+                    <tr className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
                         <button onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}>
                           {expandedId === r.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -94,7 +99,7 @@ export default function AuditPage() {
                       </td>
                     </tr>
                     {expandedId === r.id && (
-                      <tr key={`${r.id}-detail`} className="border-b border-border">
+                      <tr className="border-b border-border">
                         <td colSpan={7} className="px-4 py-3 bg-muted/20">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-2">
                             <div><span className="text-muted-foreground">Actor: </span><span className="font-mono">{r.actor_user_id}</span></div>
@@ -110,7 +115,7 @@ export default function AuditPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

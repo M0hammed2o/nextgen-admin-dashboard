@@ -84,6 +84,14 @@ export default function AiEmailLeadDetailPage() {
         <h2 className="text-sm font-semibold mb-2">Pipeline</h2>
         <InfoRow label="Verification Status" value={lead.verification_status} />
         <InfoRow label="Do Not Contact" value={lead.do_not_contact ? "Yes" : "No"} />
+        {!lead.email && (
+          <InfoRow
+            label="Phone Outreach Completed"
+            value={lead.phone_outreach_completed
+              ? `Yes${lead.phone_outreach_completed_at ? ` — ${formatDateTime(lead.phone_outreach_completed_at)}` : ""}`
+              : "No — needs a call"}
+          />
+        )}
         <InfoRow label="Last Contacted" value={lead.last_contacted_date ? formatDate(lead.last_contacted_date) : null} />
         <InfoRow label="Next Follow-up" value={lead.next_follow_up_date ? formatDate(lead.next_follow_up_date) : null} />
         <InfoRow label="Unsubscribed" value={lead.unsubscribed_at ? formatDateTime(lead.unsubscribed_at) : null} />

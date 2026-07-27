@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { aiEmailsApi } from "@/api/aiEmails";
-import { Users, SearchCheck, ShieldAlert, Send, Upload, List } from "lucide-react";
+import { Users, SearchCheck, ShieldAlert, Send, Upload, List, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImportLeadsModal } from "@/components/modals/ImportLeadsModal";
@@ -25,6 +25,7 @@ interface Counts {
   requiresResearch: number;
   requiresVerification: number;
   readyToGenerate: number;
+  needsCall: number;
 }
 
 export default function AiEmailsPage() {
@@ -40,13 +41,15 @@ export default function AiEmailsPage() {
       aiEmailsApi.listLeads({ per_page: 1, lead_status: "requires_research" }),
       aiEmailsApi.listLeads({ per_page: 1, lead_status: "requires_verification" }),
       aiEmailsApi.listLeads({ per_page: 1, lead_status: "ready_to_generate" }),
+      aiEmailsApi.listLeads({ per_page: 1, has_email: false, phone_outreach_completed: false }),
     ])
-      .then(([total, research, verification, ready]) => {
+      .then(([total, research, verification, ready, needsCall]) => {
         setCounts({
           total: total.pagination.total ?? 0,
           requiresResearch: research.pagination.total ?? 0,
           requiresVerification: verification.pagination.total ?? 0,
           readyToGenerate: ready.pagination.total ?? 0,
+          needsCall: needsCall.pagination.total ?? 0,
         });
       })
       .catch(() => {})
@@ -75,8 +78,9 @@ export default function AiEmailsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard title="Total Leads" value={counts.total} icon={Users} color="bg-primary/10 text-primary" />
+        <StatCard title="Needs a Call (No Email)" value={counts.needsCall} icon={Phone} color="bg-warning/10 text-warning" />
         <StatCard title="Requires Research" value={counts.requiresResearch} icon={SearchCheck} color="bg-warning/10 text-warning" />
         <StatCard title="Requires Verification" value={counts.requiresVerification} icon={ShieldAlert} color="bg-warning/10 text-warning" />
         <StatCard title="Ready to Generate" value={counts.readyToGenerate} icon={Send} color="bg-success/10 text-success" />
@@ -89,6 +93,9 @@ export default function AiEmailsPage() {
         </Button>
         <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/ai-emails/leads")}>
           <List className="w-4 h-4" /> View Leads
+        </Button>
+        <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/ai-emails/leads?filter=no_email")}>
+          <Phone className="w-4 h-4" /> Call List (No Email)
         </Button>
       </div>
 

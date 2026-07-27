@@ -12,6 +12,8 @@ export interface Lead {
   verification_status: string;
   lead_status: string;
   do_not_contact: boolean;
+  phone_outreach_completed: boolean;
+  phone_outreach_completed_at: string | null;
   assigned_admin_user_id: string | null;
   last_contacted_date: string | null;
   next_follow_up_date: string | null;
@@ -89,4 +91,10 @@ export interface LeadListParams {
   search?: string | null;
   assigned_admin_user_id?: string | null;
   do_not_contact?: boolean | null;
+  has_email?: boolean | null;
+  phone_outreach_completed?: boolean | null;
+}
+
+export interface LeadUpdateRequest {
+  phone_outreach_completed: boolean;
 }

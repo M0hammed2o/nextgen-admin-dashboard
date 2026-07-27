@@ -8,6 +8,7 @@ import type {
   LeadDetail,
   LeadListParams,
   LeadListResponse,
+  LeadUpdateRequest,
 } from "@/types/aiEmails";
 
 const BASE = "/v1/admin/admin/ai-emails";
@@ -47,12 +48,22 @@ export const aiEmailsApi = {
     if (params.do_not_contact !== undefined && params.do_not_contact !== null) {
       q.set("do_not_contact", String(params.do_not_contact));
     }
+    if (params.has_email !== undefined && params.has_email !== null) {
+      q.set("has_email", String(params.has_email));
+    }
+    if (params.phone_outreach_completed !== undefined && params.phone_outreach_completed !== null) {
+      q.set("phone_outreach_completed", String(params.phone_outreach_completed));
+    }
     const qs = q.toString();
     return apiClient.get<LeadListResponse>(`${BASE}/leads${qs ? `?${qs}` : ""}`);
   },
 
   getLead(id: string): Promise<LeadDetail> {
     return apiClient.get<LeadDetail>(`${BASE}/leads/${id}`);
+  },
+
+  updateLead(id: string, data: LeadUpdateRequest): Promise<LeadDetail> {
+    return apiClient.patch<LeadDetail>(`${BASE}/leads/${id}`, data);
   },
 };
 

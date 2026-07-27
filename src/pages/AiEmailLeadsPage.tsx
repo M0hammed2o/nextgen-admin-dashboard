@@ -9,8 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, Search, ChevronLeft, ChevronRight, MoreHorizontal, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ImportLeadsModal } from "@/components/modals/ImportLeadsModal";
+import { toast } from "sonner";
 
-type Filter = "all" | "requires_research" | "requires_verification" | "ready_to_generate" | "do_not_contact";
+type Filter = "all" | "requires_research" | "requires_verification" | "ready_to_generate" | "no_email" | "do_not_contact";
 
 const STATUS_STYLES: Record<string, string> = {
   new: "bg-muted text-muted-foreground",
@@ -35,17 +36,28 @@ export default function AiEmailLeadsPage() {
   const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("import") === "true") {
+    const filterParam = searchParams.get("filter");
+    const importParam = searchParams.get("import");
+    if (filterParam && filterParam !== filter) {
+      setFilter(filterParam as Filter);
+    }
+    if (importParam === "true") {
       setImportOpen(true);
+    }
+    if (filterParam || importParam) {
       setSearchParams({}, { replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, setSearchParams]);
+
+  const isNoEmailFilter = filter === "no_email";
 
   const fetchLeads = () => {
     setLoading(true);
     aiEmailsApi.listLeads({
-      lead_status: filter === "all" || filter === "do_not_contact" ? undefined : filter,
+      lead_status: filter === "all" || filter === "do_not_contact" || filter === "no_email" ? undefined : filter,
       do_not_contact: filter === "do_not_contact" ? true : undefined,
+      has_email: filter === "no_email" ? false : undefined,
       search: search || undefined,
       page,
       per_page: perPage,
@@ -56,6 +68,16 @@ export default function AiEmailLeadsPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  const handleToggleContacted = async (lead: Lead, checked: boolean) => {
+    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, phone_outreach_completed: checked } : l)));
+    try {
+      await aiEmailsApi.updateLead(lead.id, { phone_outreach_completed: checked });
+    } catch (err) {
+      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, phone_outreach_completed: !checked } : l)));
+      toast.error(err instanceof Error ? err.message : "Failed to update lead");
+    }
   };
 
   useEffect(() => { fetchLeads(); }, [filter, page, perPage]);
@@ -76,8 +98,11 @@ export default function AiEmailLeadsPage() {
     { label: "Requires Research", value: "requires_research" },
     { label: "Requires Verification", value: "requires_verification" },
     { label: "Ready to Generate", value: "ready_to_generate" },
+    { label: "No Email — Call List", value: "no_email" },
     { label: "Do Not Contact", value: "do_not_contact" },
   ];
+
+  const columnCount = isNoEmailFilter ? 8 : 7;
 
   const totalPages = Math.max(1, Math.ceil(total / perPage));
 
@@ -117,6 +142,9 @@ export default function AiEmailLeadsPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Email</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Last Contacted</th>
+                {isNoEmailFilter && (
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Contacted</th>
+                )}
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
@@ -124,15 +152,17 @@ export default function AiEmailLeadsPage() {
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="border-b border-border last:border-0">
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: columnCount }).map((_, j) => (
                       <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
                     ))}
                   </tr>
                 ))
               ) : leads.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                    No leads found. Use "Import" to add leads from a spreadsheet.
+                  <td colSpan={columnCount} className="text-center py-12 text-muted-foreground">
+                    {isNoEmailFilter
+                      ? "No leads without an email — everything is either email-ready or already actioned."
+                      : 'No leads found. Use "Import" to add leads from a spreadsheet.'}
                   </td>
                 </tr>
               ) : (
@@ -152,6 +182,20 @@ export default function AiEmailLeadsPage() {
                     <td className="px-4 py-3 hidden xl:table-cell text-muted-foreground">
                       {lead.last_contacted_date ? formatDate(lead.last_contacted_date) : "—"}
                     </td>
+                    {isNoEmailFilter && (
+                      <td className="px-4 py-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={lead.phone_outreach_completed}
+                            onChange={(e) => handleToggleContacted(lead, e.target.checked)}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {lead.phone_outreach_completed ? "Done" : "Pending"}
+                          </span>
+                        </label>
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

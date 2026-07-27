@@ -189,8 +189,17 @@ export default function BusinessDetailsPage() {
           <h3 className="text-sm font-semibold mb-3">Billing & Plan</h3>
           <InfoRow label="Plan" value={business.plan} />
           <InfoRow label="Billing Status" value={business.billing_status} />
+          <InfoRow label="Trial Ends" value={business.trial_ends_at ? formatDateTime(business.trial_ends_at) : "—"} />
           <InfoRow label="Stripe Customer" value={business.stripe_customer_id || "—"} />
           <InfoRow label="Stripe Subscription" value={business.stripe_subscription_id || "—"} />
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold mb-3">Subscription Usage</h3>
+          <InfoRow label="Monthly Order Quota" value={business.monthly_order_quota} />
+          <InfoRow label="Order Pack Credits" value={business.order_pack_credits} />
+          <InfoRow label="Orders Used" value={business.monthly_orders_used} />
+          <InfoRow label="Orders Remaining" value={business.monthly_orders_remaining} />
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
