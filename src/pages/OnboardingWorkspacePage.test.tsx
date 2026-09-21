@@ -15,6 +15,7 @@ vi.mock("@/api/businesses", () => ({
     completeOnboarding: vi.fn(),
     resetPassword: vi.fn(),
     createOwner: vi.fn(),
+    confirmOnboardingItem: vi.fn(),
   },
 }));
 
@@ -53,10 +54,16 @@ function makeStatus(overrides: Partial<OnboardingStatusResponse["go_live"]>): On
   const failed = checks.filter((c) => c.status === "fail").length;
   const passed = checks.filter((c) => c.status === "pass").length;
   const warned = checks.filter((c) => c.status === "warn").length;
+  const applicable = checks.filter((c) => c.status !== "n/a");
+  const readiness = {
+    passed, total: applicable.length,
+    percent: applicable.length ? Math.round((100 * passed) / applicable.length) : 100,
+    label: `Restaurant Ready — ${passed}/${applicable.length} checks complete`,
+  };
   return {
     business_id: BUSINESS.id, business_name: BUSINESS.name,
     setup: { business_name: BUSINESS.name, inventory_enabled: false, ready_to_trade: false, percent_complete: 10, steps: [] },
-    go_live: { ready: failed === 0, passed, failed, warned, checks, ...overrides },
+    go_live: { ready: failed === 0, passed, failed, warned, checks, readiness, ...overrides },
     ready: failed === 0,
   };
 }

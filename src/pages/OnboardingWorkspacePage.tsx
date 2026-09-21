@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { businessesApi } from "@/api/businesses";
-import type { OnboardingBusiness, BusinessUserSummary } from "@/types/business";
+import type { OnboardingBusiness, BusinessUserSummary, OnboardingConfirmItem, OnboardingConfirmation } from "@/types/business";
 import type { ModuleFlagKey } from "@/lib/modules";
 import type { OnboardingStatusResponse } from "@/types/onboarding";
 import { buildOnboardingBasicsPatch } from "@/lib/onboardingPatch";
@@ -41,6 +41,16 @@ const DASHBOARD_STEPS: { key: string; instruction: string }[] = [
   { key: "billing_status", instruction: "Confirm billing status with NextGen (Trial or Active)." },
 ];
 
+// The 3 items POST .../onboarding/confirm accepts (OnboardingConfirmRequest.item
+// pattern in routes_businesses.py) -- each maps to exactly one go-live check
+// key whose status flips once confirmed (see compute_go_live_checks's
+// modules_confirmed/receipt_test/whatsapp_test checks).
+const MANUAL_CONFIRM_ITEMS: { item: OnboardingConfirmItem; checkKey: string; label: string }[] = [
+  { item: "modules", checkKey: "modules_confirmed", label: "Modules match what the client purchased" },
+  { item: "receipt_print", checkKey: "receipt_test", label: "Test receipt printed correctly" },
+  { item: "whatsapp_test", checkKey: "whatsapp_test", label: "WhatsApp test message received" },
+];
+
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Action failed";
 }
@@ -74,6 +84,17 @@ export default function OnboardingWorkspacePage() {
   const [forceOpen, setForceOpen] = useState(false);
   const [forceAck, setForceAck] = useState(false);
   const [completing, setCompleting] = useState(false);
+
+  // Go-live manual confirmations (modules / receipt_print / whatsapp_test).
+  // `confirmedThisSession` only ever holds what THIS browser session itself
+  // confirmed (the API has no endpoint that returns onboarding_confirmations
+  // on its own -- see OnboardingConfirmResponse) -- "confirmed by X" shown
+  // for anything confirmed before this session comes from the go-live
+  // check's own `detail` text instead (see DASHBOARD_STEPS section, and
+  // compute_go_live_checks's modules_confirmed detail string).
+  const [confirmingItem, setConfirmingItem] = useState<OnboardingConfirmItem | null>(null);
+  const [confirmNotes, setConfirmNotes] = useState<Partial<Record<OnboardingConfirmItem, string>>>({});
+  const [confirmedThisSession, setConfirmedThisSession] = useState<Partial<Record<OnboardingConfirmItem, OnboardingConfirmation>>>({});
 
   const fetchBusiness = () => {
     if (!id) return;
@@ -155,6 +176,23 @@ export default function OnboardingWorkspacePage() {
     }
   };
 
+  const handleConfirmItem = async (item: OnboardingConfirmItem) => {
+    if (!id) return;
+    setConfirmingItem(item);
+    try {
+      const note = confirmNotes[item]?.trim();
+      const res = await businessesApi.confirmOnboardingItem(id, { item, note: note || undefined });
+      const confirmation = res.onboarding_confirmations[item];
+      if (confirmation) setConfirmedThisSession((prev) => ({ ...prev, [item]: confirmation }));
+      toast.success("Confirmed");
+      fetchStatus();
+    } catch (err: unknown) {
+      toast.error(errorMessage(err));
+    } finally {
+      setConfirmingItem(null);
+    }
+  };
+
   const handleComplete = async (force: boolean) => {
     if (!id) return;
     setCompleting(true);
@@ -209,6 +247,15 @@ export default function OnboardingWorkspacePage() {
           </span>
         )}
       </div>
+
+      {/* Readiness label -- prominent, from the SAME GET .../onboarding
+          response as the checks below, never hand-derived. */}
+      {status && !statusLoading && (
+        <div className={`rounded-xl border px-4 py-3 ${status.ready ? "bg-success/10 border-success/20" : "bg-warning/10 border-warning/20"}`}>
+          <p className={`text-sm font-semibold ${status.ready ? "text-success" : "text-warning"}`}>{status.go_live.readiness.label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{status.go_live.readiness.percent}% of go-live checks complete</p>
+        </div>
+      )}
 
       {/* (a) Restaurant, plan & modules */}
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
@@ -337,6 +384,58 @@ export default function OnboardingWorkspacePage() {
                     {check && <p className="text-xs text-muted-foreground mt-0.5">{check.detail}</p>}
                   </div>
                   {check && <GoLiveStatusBadge status={check.status} />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* (c.5) Go-live manual confirmations -- things the system cannot
+          observe automatically (POST .../onboarding/confirm). */}
+      <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold">Go-Live Confirmations</h3>
+        <p className="text-xs text-muted-foreground">
+          Confirm each of these in person, once you've actually checked it — the system can't observe any of them on its own.
+        </p>
+        {statusError ? null : statusLoading ? (
+          <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {MANUAL_CONFIRM_ITEMS.map(({ item, checkKey, label }) => {
+              const check = checksByKey.get(checkKey);
+              if (check?.status === "n/a") return null;
+              const sessionConfirmation = confirmedThisSession[item];
+              return (
+                <div key={item} className="py-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{label}</p>
+                      {check && <p className="text-xs text-muted-foreground mt-0.5">{check.detail}</p>}
+                      {sessionConfirmation && (
+                        <p className="text-xs text-success mt-0.5">
+                          Confirmed by you, {formatDateTime(sessionConfirmation.confirmed_at)}
+                          {sessionConfirmation.note ? ` — "${sessionConfirmation.note}"` : ""}
+                        </p>
+                      )}
+                    </div>
+                    {check && <GoLiveStatusBadge status={check.status} />}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      className="h-8 text-xs flex-1"
+                      placeholder="Optional note"
+                      value={confirmNotes[item] ?? ""}
+                      onChange={(e) => setConfirmNotes((prev) => ({ ...prev, [item]: e.target.value }))}
+                    />
+                    <Button
+                      size="sm" variant="outline"
+                      disabled={confirmingItem === item}
+                      onClick={() => handleConfirmItem(item)}
+                    >
+                      {confirmingItem === item ? "Confirming…" : check?.status === "pass" ? "Re-confirm" : "Confirm"}
+                    </Button>
+                  </div>
                 </div>
               );
             })}
