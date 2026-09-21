@@ -149,7 +149,14 @@ export default function SalesClientPage() {
     }
   };
 
-  if (clientLoading) {
+  // Only show the full-page skeleton/error state on the FIRST load, before
+  // clientRow has ever been populated. A background refetch (e.g. after
+  // InvoiceEditorDialog's onSaved calls fetchClient() to refresh trial/plan
+  // info) sets clientLoading back to true, but must not unmount the page
+  // tree -- doing so unmounts any open dialog and wipes its in-progress
+  // state, even though the save itself succeeded server-side. See
+  // KNOWN_BUGS.md BUG-0068.
+  if (clientLoading && !clientRow) {
     return (
       <div className="space-y-4 animate-fade-in">
         <Skeleton className="h-8 w-48" />
@@ -158,7 +165,7 @@ export default function SalesClientPage() {
     );
   }
 
-  if (clientError || !clientRow) {
+  if (!clientRow) {
     return (
       <div className="text-center py-12">
         <p className="text-destructive mb-4">{clientError || "This client isn't in your scope, or doesn't exist."}</p>

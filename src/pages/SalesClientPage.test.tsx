@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import SalesClientPage from "./SalesClientPage";
 import { commercialApi } from "@/api/commercial";
@@ -13,6 +13,9 @@ vi.mock("@/api/commercial", () => ({
     getPriceCatalogue: vi.fn(),
     downloadInvoicePdf: vi.fn(),
     markSent: vi.fn(),
+    createInvoiceDraft: vi.fn(),
+    updateInvoiceDraft: vi.fn(),
+    issueInvoice: vi.fn(),
   },
 }));
 
@@ -104,5 +107,63 @@ describe("SalesClientPage invoice actions", () => {
     await waitFor(() => expect(screen.getByText("Barn Owl")).toBeInTheDocument());
     const issuedRowSuperAdmin = screen.getByText("NG-INV-2026-00001").closest("tr")!;
     expect(within(issuedRowSuperAdmin).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+  });
+
+  // BUG-0068 regression: saving an invoice draft triggers onSaved -> fetchClient(),
+  // a background refetch of the SAME resource the page's top-level skeleton/error
+  // gate depends on. That refetch must never unmount the page tree (and with it,
+  // the open InvoiceEditorDialog) while it's in flight -- the dialog's open state
+  // must not depend on the parent query's referential identity/loading flag once
+  // the client has loaded once.
+  it("keeps the invoice editor dialog open with its saved line while a background client refetch is in flight", async () => {
+    mockRole = { isSuperAdmin: false, isOnboarder: true };
+    vi.mocked(commercialApi.listInvoices).mockReset().mockResolvedValue([]);
+
+    let resolveRefetch: (v: ClientRow) => void = () => {};
+    const refetchPromise = new Promise<ClientRow>((resolve) => { resolveRefetch = resolve; });
+    vi.mocked(commercialApi.getClient)
+      .mockReset()
+      .mockResolvedValueOnce(CLIENT) // initial page load
+      .mockReturnValueOnce(refetchPromise); // background refetch from onSaved -> fetchClient(), left pending on purpose
+
+    const savedDraft: CommercialInvoice = {
+      ...DRAFT_INVOICE,
+      subtotal_cents: 10000,
+      total_cents: 11500,
+      lines: [{ id: "line-1", sort_order: 0, kind: "OTHER", description: "Onsite setup", quantity: 1, unit_amount_cents: 10000, line_total_cents: 10000 }],
+    };
+    vi.mocked(commercialApi.createInvoiceDraft).mockReset().mockResolvedValue(savedDraft);
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Barn Owl")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /New Invoice/i }));
+    expect(screen.getByRole("heading", { name: "New Invoice" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Other/i }));
+    fireEvent.change(screen.getByLabelText("Line description"), { target: { value: "Onsite setup" } });
+    fireEvent.change(screen.getByLabelText("Unit amount (rands)"), { target: { value: "100.00" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Save Draft" }));
+      await Promise.resolve();
+    });
+
+    // The refetch triggered by onSaved is still pending -- clientLoading is
+    // back to true on the parent -- but the dialog must still be mounted and
+    // showing the saved line and "Saved" state, not reset.
+    await waitFor(() => expect(screen.getByDisplayValue("Onsite setup")).toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: /Draft Invoice/ })).toBeInTheDocument();
+    expect(screen.getByText("Saved as draft — not yet a real numbered document.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Issue" })).toBeEnabled();
+
+    await act(async () => {
+      resolveRefetch(CLIENT);
+      await refetchPromise;
+    });
+
+    // Still open and intact after the refetch resolves too.
+    expect(screen.getByDisplayValue("Onsite setup")).toBeInTheDocument();
+    expect(screen.getByText("Saved as draft — not yet a real numbered document.")).toBeInTheDocument();
   });
 });
