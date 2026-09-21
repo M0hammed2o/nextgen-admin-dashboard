@@ -13,12 +13,25 @@ export interface GoLiveCheck {
   detail: string;
 }
 
+// admin_api/app/services/onboarding.py::ReadinessSummary -- a friendlier,
+// percent-based summary of the SAME checks GoLiveResult already carries
+// (excludes n/a checks from the denominator), added Wave 0A so the sales
+// UI has one human label ("Restaurant Ready — 11/12 checks complete") to
+// show prominently instead of hand-deriving it from `checks` itself.
+export interface ReadinessSummary {
+  passed: number;
+  total: number;
+  percent: number;
+  label: string;
+}
+
 export interface GoLiveResult {
   ready: boolean;
   passed: number;
   failed: number;
   warned: number;
   checks: GoLiveCheck[];
+  readiness: ReadinessSummary;
 }
 
 export type SetupStepStatus = "done" | "partial" | "todo";

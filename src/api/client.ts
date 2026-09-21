@@ -80,7 +80,16 @@ class ApiClient {
       // Backend returns { error: { message } } — match other apps' parsing.
       const message =
         body?.error?.message || body?.detail || body?.message || `Request failed: ${res.status}`;
-      throw new Error(message);
+      const err = new Error(message) as Error & { code?: string; status?: number };
+      // Additive, backward-compatible: every existing caller only ever read
+      // `.message` (see AdminUsersPage's toast-verbatim convention) -- these
+      // two extra fields let a caller distinguish e.g. a scoping 404
+      // (BUSINESS_NOT_FOUND, expected once an ONBOARDER's config access to
+      // a handed-over business ends) from a real failure, without having to
+      // string-match `.message`. See SalesClientPage for the first use.
+      err.code = body?.error?.code;
+      err.status = res.status;
+      throw err;
     }
 
     if (res.status === 204) return {} as T;

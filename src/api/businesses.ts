@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { ADMIN_API_BASE, TOKEN_KEY } from "@/lib/constants";
 import type {
   Business,
   CreateBusinessRequest,
@@ -17,6 +18,13 @@ import type {
   OrderPackRequest,
 } from "@/types/business";
 import type { OnboardingCompleteRequest, OnboardingCompleteResponse, OnboardingStatusResponse } from "@/types/onboarding";
+import type {
+  TrialStartResponse,
+  TrialExtendRequest,
+  TrialExtendResponse,
+  OnboardingConfirmRequest,
+  OnboardingConfirmResponse,
+} from "@/types/business";
 
 export const businessesApi = {
   list(params?: { is_active?: boolean | null; page?: number; per_page?: number }): Promise<Business[]> {
@@ -112,9 +120,31 @@ export const businessesApi = {
     return apiClient.post<OnboardingCompleteResponse>(`/v1/admin/admin/businesses/${id}/onboarding/complete`, data);
   },
 
+  // ── Trial start/extend + go-live manual confirmations (Wave 0A) ─────────
+  // Use get_business_commercial_scoped server-side (not get_business_scoped)
+  // -- reachable by an ONBOARDER for their own clients even after handover,
+  // unlike getOnboarding/getOnboardingStatus above. See OnboardingBusiness
+  // comment block and the Sales Client page for how the UI handles that
+  // split.
+  startTrial(id: string): Promise<TrialStartResponse> {
+    return apiClient.post<TrialStartResponse>(`/v1/admin/admin/businesses/${id}/trial/start`);
+  },
+
+  extendTrial(id: string, data: TrialExtendRequest): Promise<TrialExtendResponse> {
+    return apiClient.post<TrialExtendResponse>(`/v1/admin/admin/businesses/${id}/trial/extend`, data);
+  },
+
+  confirmOnboardingItem(id: string, data: OnboardingConfirmRequest): Promise<OnboardingConfirmResponse> {
+    return apiClient.post<OnboardingConfirmResponse>(`/v1/admin/admin/businesses/${id}/onboarding/confirm`, data);
+  },
+
   async billingPdf(id: string): Promise<void> {
-    const token = localStorage.getItem("nextgen_admin_token");
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "https://admin-api.nextgenintelligence.co.za"}/v1/admin/admin/businesses/${id}/billing/pdf`, {
+    // Was a second hardcoded fallback URL literal, independent of
+    // ADMIN_API_BASE -- fixed while touching this file for the commercial
+    // build (2026-09-21); see DOC NOTES in that task's report. Use the same
+    // constant every other request in this app goes through.
+    const token = localStorage.getItem(TOKEN_KEY);
+    const res = await fetch(`${ADMIN_API_BASE}/v1/admin/admin/businesses/${id}/billing/pdf`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error("Failed to generate billing PDF");

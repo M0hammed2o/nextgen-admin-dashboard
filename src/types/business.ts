@@ -56,6 +56,11 @@ export interface CreateBusinessRequest {
   daily_order_limit: number;
   owner_email: string;
   owner_full_name: string;
+  // BusinessCreate.start_trial (admin_api/app/api/v1/routes_businesses.py) --
+  // starts a TRIAL_DEFAULT_DAYS commercial trial immediately when true
+  // (the default server-side too). When false, the business is created
+  // ACTIVE with no trial -- for a client invoiced/paying from day one.
+  start_trial?: boolean;
 }
 
 // The subset of BusinessCreate fields an ONBOARDER may send (see
@@ -71,6 +76,11 @@ export interface CreateOnboardingBusinessRequest {
   timezone: string;
   plan: string;
   whatsapp_phone_number_id?: string | null;
+  // BusinessCreate.start_trial -- same field as CreateBusinessRequest, an
+  // ONBOARDER may send this too (the create-business route body is the
+  // full BusinessCreate for both roles; only plan/limits are restricted for
+  // ONBOARDER -- see routes_businesses.py::create_business).
+  start_trial?: boolean;
 }
 
 // The reduced view of a business returned to an ONBOARDER (and the shape
@@ -217,4 +227,46 @@ export interface WhatsAppTestResponse {
   wa_message_id: string;
   error: string;
   phone_number_id: string;
+}
+
+// ── Trial start/extend + go-live manual confirmations (Wave 0A) ────────────
+// All three routes use get_business_commercial_scoped -- an ONBOARDER keeps
+// access for their own clients even after handover (unlike the CONFIGURATION
+// routes above, which use get_business_scoped and 404 post-handover).
+
+export interface TrialStartResponse {
+  business_id: string;
+  billing_status: string;
+  trial_started_at: string | null;
+  trial_ends_at: string | null;
+}
+
+export interface TrialExtendRequest {
+  days: number;
+  reason: string;
+}
+
+export interface TrialExtendResponse {
+  business_id: string;
+  billing_status: string;
+  trial_ends_at: string | null;
+  trial_extension_days_total: number;
+}
+
+export type OnboardingConfirmItem = "modules" | "receipt_print" | "whatsapp_test";
+
+export interface OnboardingConfirmRequest {
+  item: OnboardingConfirmItem;
+  note?: string | null;
+}
+
+export interface OnboardingConfirmation {
+  confirmed_by: string;
+  confirmed_at: string;
+  note: string | null;
+}
+
+export interface OnboardingConfirmResponse {
+  business_id: string;
+  onboarding_confirmations: Record<string, OnboardingConfirmation>;
 }
