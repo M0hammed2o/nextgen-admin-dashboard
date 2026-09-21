@@ -2,22 +2,9 @@ import { useLocation, NavLink } from "react-router-dom";
 import { Menu, LogOut, Moon, Sun } from "lucide-react";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/lib/constants";
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Building2, BarChart3, ScrollText, Zap, X } from "lucide-react";
+import { Zap, X } from "lucide-react";
+import { NAV_ITEMS as navItems, PAGE_TITLES as pageTitles } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-
-const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/businesses": "Businesses",
-  "/usage": "Usage Analytics",
-  "/audit": "Audit Log",
-};
-
-const navItems = [
-  { title: "Dashboard", path: "/", icon: LayoutDashboard },
-  { title: "Businesses", path: "/businesses", icon: Building2 },
-  { title: "Usage", path: "/usage", icon: BarChart3 },
-  { title: "Audit Log", path: "/audit", icon: ScrollText },
-];
 
 export function AdminTopbar() {
   const location = useLocation();

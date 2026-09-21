@@ -1,20 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Building2, Mail, BarChart3, ScrollText, LogOut, Zap, ExternalLink } from "lucide-react";
+import { LogOut, Zap } from "lucide-react";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/lib/constants";
+import { NAV_ITEMS as navItems, EXTERNAL_NAV_LINKS as externalLinks } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { title: "Dashboard", path: "/", icon: LayoutDashboard },
-  { title: "Businesses", path: "/businesses", icon: Building2 },
-  { title: "AI Emails", path: "/ai-emails", icon: Mail },
-  { title: "Usage", path: "/usage", icon: BarChart3 },
-  { title: "Audit Log", path: "/audit", icon: ScrollText },
-];
-
-const externalLinks = [
-  { title: "Business Portal", url: "https://app.nextgenintelligence.co.za", icon: ExternalLink },
-  { title: "Staff Login", url: "https://staff.nextgenintelligence.co.za", icon: ExternalLink },
-];
 
 export function AdminSidebar() {
   const location = useLocation();
