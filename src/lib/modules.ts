@@ -1,15 +1,16 @@
 // Single source of truth for the per-tenant module switches accepted by the
 // backend's BusinessUpdate schema (admin_api/app/api/v1/routes_businesses.py).
-// Used by CreateBusinessModal, EditBusinessModal, and BusinessDetailsPage so
-// the list of switches, their labels, and their descriptions can't drift
-// apart between those three places.
+// Used by CreateBusinessModal, EditBusinessModal, BusinessDetailsPage, and
+// the onboarding workspace so the list of switches, their labels, and their
+// descriptions can't drift apart between those places.
 //
-// IMPORTANT: BusinessAdminResponse (the GET/PATCH response shape) does NOT
-// return any of these fields today -- verified by reading the backend schema,
-// not assumed. That means this UI can set them but cannot currently show
-// their real current value. Every consumer of MODULE_FLAGS must treat them
-// as write-only until a backend engineer adds them to the response model
-// (tracked in KNOWN_BUGS.md).
+// BusinessAdminResponse AND BusinessOnboarderResponse now both return these
+// fields (verified by reading the backend schema, 2026-09-21 -- previously
+// they didn't, see the now-fixed KNOWN_BUGS.md entry). ModuleTogglesFieldset
+// renders a normal on/off Switch when a caller passes the real current value
+// via its `current` prop, and falls back to the old write-only tri-state
+// control only when it genuinely doesn't have one (e.g. at business-creation
+// time, before the business exists).
 export type ModuleFlagKey =
   | "is_whatsapp_enabled"
   | "inventory_enabled"

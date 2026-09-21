@@ -108,7 +108,17 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
 
           <hr className="border-border" />
           <p className="text-sm font-medium">Modules</p>
-          <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
+          <ModuleTogglesFieldset
+            changes={moduleChanges}
+            onChange={setModuleFlag}
+            current={{
+              is_whatsapp_enabled: business.is_whatsapp_enabled,
+              inventory_enabled: business.inventory_enabled,
+              staff_live_orders_tab_enabled: business.staff_live_orders_tab_enabled,
+              staff_wastage_tab_enabled: business.staff_wastage_tab_enabled,
+              staff_stocktake_tab_enabled: business.staff_stocktake_tab_enabled,
+            }}
+          />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>

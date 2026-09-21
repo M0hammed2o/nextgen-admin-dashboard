@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { businessesApi } from "@/api/businesses";
 import type { Business, BusinessUserSummary } from "@/types/business";
 import { MODULE_FLAGS } from "@/lib/modules";
+import { DASH_URL } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -176,7 +177,7 @@ export default function BusinessDetailsPage() {
           variant="outline"
           size="sm"
           className="gap-1.5"
-          onClick={() => window.open("https://app.nextgenintelligence.co.za", "_blank")}
+          onClick={() => window.open(DASH_URL, "_blank")}
         >
           <ExternalLink className="w-3.5 h-3.5" /> Business Dashboard
         </Button>
@@ -233,20 +234,21 @@ export default function BusinessDetailsPage() {
               <Edit className="w-3 h-3" /> Edit
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mb-2">
-            The platform API doesn't return each module's current on/off state yet (a known backend gap, see
-            KNOWN_BUGS.md) — use Edit to explicitly turn a module on or off for this business.
-          </p>
           <div className="divide-y divide-border">
-            {MODULE_FLAGS.map((f) => (
-              <div key={f.key} className="flex items-start justify-between gap-3 py-2">
-                <div>
-                  <p className="text-sm font-medium">{f.label}</p>
-                  <p className="text-xs text-muted-foreground">{f.description}</p>
+            {MODULE_FLAGS.map((f) => {
+              const on = business[f.key];
+              return (
+                <div key={f.key} className="flex items-start justify-between gap-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{f.label}</p>
+                    <p className="text-xs text-muted-foreground">{f.description}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${on ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                    {on ? "On" : "Off"}
+                  </span>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">Unknown</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

@@ -29,15 +29,20 @@ export interface Business {
   // Present only in the response right after creation (owner_email was set) —
   // shown once, never returned by GET/PATCH.
   owner_temporary_password?: string | null;
-  // ── Module switches: NOT included here on purpose ──────────────────────
-  // is_whatsapp_enabled / inventory_enabled / staff_live_orders_tab_enabled /
-  // staff_wastage_tab_enabled / staff_stocktake_tab_enabled all exist on the
-  // backend's Business model and its BusinessUpdate (PATCH) schema, but
-  // BusinessAdminResponse (admin_api/app/api/v1/routes_businesses.py) does
-  // NOT return any of them today — verified by reading the schema, not
-  // assumed. Do not add them here as if GET/PATCH responses carry a real
-  // value; the UI (EditBusinessModal, BusinessDetailsPage) treats these as
-  // write-only until a backend engineer adds them to the response model.
+  // ── Module switches: now real, read/write ───────────────────────────────
+  // BusinessAdminResponse (admin_api/app/api/v1/routes_businesses.py) now
+  // returns these -- verified by reading the schema during the sales-partner
+  // onboarding build (2026-09-21). Previously write-only (see KNOWN_BUGS.md
+  // for the fixed entry); ModuleTogglesFieldset now renders a normal on/off
+  // Switch using these as the known "current" state instead of a tri-state
+  // Leave/On/Off guess.
+  is_whatsapp_enabled: boolean;
+  inventory_enabled: boolean;
+  staff_live_orders_tab_enabled: boolean;
+  staff_wastage_tab_enabled: boolean;
+  staff_stocktake_tab_enabled: boolean;
+  onboarded_by_admin_id: string | null;
+  onboarding_completed_at: string | null;
 }
 
 export interface CreateBusinessRequest {
@@ -51,6 +56,53 @@ export interface CreateBusinessRequest {
   daily_order_limit: number;
   owner_email: string;
   owner_full_name: string;
+}
+
+// The subset of BusinessCreate fields an ONBOARDER may send (see
+// admin_api/app/api/v1/routes_businesses.py -- daily limits must stay at
+// their defaults for that role, and owner_email/owner_full_name are
+// deliberately left out here: the onboarding workspace creates the owner
+// login as its own separate step, not bundled into business creation).
+// Used for the "New restaurant" action on the Onboarding page for BOTH
+// roles, since it's a strict subset of what SUPER_ADMIN may also send.
+export interface CreateOnboardingBusinessRequest {
+  name: string;
+  slug?: string;
+  timezone: string;
+  plan: string;
+  whatsapp_phone_number_id?: string | null;
+}
+
+// The reduced view of a business returned to an ONBOARDER (and the shape
+// every field SUPER_ADMIN's fuller BusinessAdminResponse also carries) --
+// admin_api/app/api/v1/routes_businesses.py::BusinessOnboarderResponse.
+// Used by the Onboarding list + workspace pages so they work identically
+// for both roles.
+export interface OnboardingBusiness {
+  id: string;
+  name: string;
+  slug: string;
+  business_code: string;
+  is_active: boolean;
+  suspended_reason: string | null;
+  timezone: string;
+  plan: string;
+  billing_status: string;
+  currency: string;
+  whatsapp_phone_number_id: string | null;
+  daily_message_limit: number;
+  daily_llm_call_limit: number;
+  daily_order_limit: number;
+  last_webhook_received_at: string | null;
+  created_at: string;
+  is_whatsapp_enabled: boolean;
+  inventory_enabled: boolean;
+  staff_live_orders_tab_enabled: boolean;
+  staff_wastage_tab_enabled: boolean;
+  staff_stocktake_tab_enabled: boolean;
+  onboarded_by_admin_id: string | null;
+  onboarding_completed_at: string | null;
+  owner_temporary_password?: string | null;
 }
 
 export interface UpdateBusinessRequest {
@@ -84,6 +136,23 @@ export interface UpdateBusinessRequest {
   staff_stocktake_tab_enabled?: boolean;
 }
 
+// The PATCH allow-list an ONBOARDER may send (ONBOARDER_PATCH_ALLOWED_FIELDS
+// in admin_api/app/api/v1/routes_businesses.py) -- anything else 403s with
+// FIELD_NOT_ALLOWED. Used by OnboardingWorkspacePage's inline edit so it's
+// structurally impossible to build a payload with a forbidden field.
+export type OnboardingBusinessUpdate = Pick<
+  UpdateBusinessRequest,
+  | "name"
+  | "timezone"
+  | "plan"
+  | "whatsapp_phone_number_id"
+  | "is_whatsapp_enabled"
+  | "inventory_enabled"
+  | "staff_live_orders_tab_enabled"
+  | "staff_wastage_tab_enabled"
+  | "staff_stocktake_tab_enabled"
+>;
+
 export interface OrderPackRequest {
   pack_size: number;
 }
@@ -102,6 +171,11 @@ export interface CreateOwnerRequest {
   email: string;
   full_name: string;
   role: "OWNER" | "MANAGER";
+  // Marks this as the onboarder's own temporary working login ("NextGen
+  // Onboarding"), not a real restaurant staff member. Must be role=MANAGER
+  // (enforced server-side). Deactivated automatically on onboarding
+  // complete. See OnboardingWorkspacePage's "Logins" section.
+  is_onboarding_account?: boolean;
 }
 
 export interface CreateOwnerResponse {
