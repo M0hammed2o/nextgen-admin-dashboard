@@ -30,7 +30,19 @@ export default function OnboardingListPage() {
     setError("");
     businessesApi
       .listOnboarding({ per_page: 100 })
-      .then((list) => {
+      .then((rawList) => {
+        // GET /admin/businesses only filters to "not yet handed over" for
+        // ONBOARDER server-side (see get_business_scoped's docstring) --
+        // for SUPER_ADMIN it deliberately returns EVERY business (same
+        // endpoint the full Businesses page uses), since that role's view
+        // is platform-wide by design. This page's whole purpose is "still
+        // being onboarded", so filter to onboarding_completed_at === null
+        // here for both roles -- a no-op for ONBOARDER (already filtered),
+        // the actual filter for SUPER_ADMIN. Found while wiring this page
+        // up: reading list_businesses in routes_businesses.py shows the
+        // onboarding_completed_at filter is inside the `if
+        // user.role == AdminRole.ONBOARDER` branch only.
+        const list = rawList.filter((b) => b.onboarding_completed_at === null);
         setBusinesses(list);
         // Fire off a readiness check per business -- best-effort, independent
         // per row so one slow/failing business doesn't block the others.
