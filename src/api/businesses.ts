@@ -2,7 +2,10 @@ import { apiClient } from "./client";
 import type {
   Business,
   CreateBusinessRequest,
+  CreateOnboardingBusinessRequest,
   UpdateBusinessRequest,
+  OnboardingBusiness,
+  OnboardingBusinessUpdate,
   SuspendRequest,
   SetLimitsRequest,
   CreateOwnerRequest,
@@ -13,6 +16,7 @@ import type {
   WhatsAppTestResponse,
   OrderPackRequest,
 } from "@/types/business";
+import type { OnboardingCompleteRequest, OnboardingCompleteResponse, OnboardingStatusResponse } from "@/types/onboarding";
 
 export const businessesApi = {
   list(params?: { is_active?: boolean | null; page?: number; per_page?: number }): Promise<Business[]> {
@@ -68,6 +72,44 @@ export const businessesApi = {
 
   whatsappTestSend(id: string, data: WhatsAppTestRequest): Promise<WhatsAppTestResponse> {
     return apiClient.post<WhatsAppTestResponse>(`/v1/admin/admin/businesses/${id}/whatsapp/test-send`, data);
+  },
+
+  // ── Onboarding-scoped variants ──────────────────────────────────────────
+  // Same endpoints as above, but typed against the reduced
+  // OnboardingBusiness shape an ONBOARDER actually receives (SUPER_ADMIN's
+  // fuller response still structurally satisfies it). Used by
+  // OnboardingListPage / OnboardingWorkspacePage, which are reachable by
+  // BOTH roles -- see admin_api/app/api/v1/routes_businesses.py's
+  // get_business_scoped for the server-side scoping this relies on.
+  listOnboarding(params?: { is_active?: boolean | null; page?: number; per_page?: number }): Promise<OnboardingBusiness[]> {
+    const q = new URLSearchParams();
+    if (params?.is_active !== undefined && params.is_active !== null) {
+      q.set("is_active", String(params.is_active));
+    }
+    if (params?.page) q.set("page", String(params.page));
+    if (params?.per_page) q.set("per_page", String(params.per_page));
+    const qs = q.toString();
+    return apiClient.get<OnboardingBusiness[]>(`/v1/admin/admin/businesses${qs ? `?${qs}` : ""}`);
+  },
+
+  getOnboarding(id: string): Promise<OnboardingBusiness> {
+    return apiClient.get<OnboardingBusiness>(`/v1/admin/admin/businesses/${id}`);
+  },
+
+  createOnboardingBusiness(data: CreateOnboardingBusinessRequest): Promise<OnboardingBusiness> {
+    return apiClient.post<OnboardingBusiness>("/v1/admin/admin/businesses", data);
+  },
+
+  updateOnboardingBusiness(id: string, data: OnboardingBusinessUpdate): Promise<OnboardingBusiness> {
+    return apiClient.patch<OnboardingBusiness>(`/v1/admin/admin/businesses/${id}`, data);
+  },
+
+  getOnboardingStatus(id: string): Promise<OnboardingStatusResponse> {
+    return apiClient.get<OnboardingStatusResponse>(`/v1/admin/admin/businesses/${id}/onboarding`);
+  },
+
+  completeOnboarding(id: string, data: OnboardingCompleteRequest): Promise<OnboardingCompleteResponse> {
+    return apiClient.post<OnboardingCompleteResponse>(`/v1/admin/admin/businesses/${id}/onboarding/complete`, data);
   },
 
   async billingPdf(id: string): Promise<void> {

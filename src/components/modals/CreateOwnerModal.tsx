@@ -11,9 +11,18 @@ interface Props {
   onClose: () => void;
   businessId: string;
   onSuccess?: () => void;
+  /**
+   * When true, this creates the onboarder's OWN temporary working login
+   * ("NextGen Onboarding") instead of a real restaurant staff member's
+   * login -- role is forced to MANAGER and full_name is ignored server-side
+   * (reserved staff_name, see ONBOARDING_ACCOUNT_STAFF_NAME in
+   * routes_businesses.py), so this mode hides the Role and Full Name
+   * fields entirely rather than showing inputs that don't do anything.
+   */
+  onboardingAccount?: boolean;
 }
 
-export function CreateOwnerModal({ open, onClose, businessId, onSuccess }: Props) {
+export function CreateOwnerModal({ open, onClose, businessId, onSuccess, onboardingAccount }: Props) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", full_name: "", role: "OWNER" as "OWNER" | "MANAGER" });
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
@@ -23,7 +32,10 @@ export function CreateOwnerModal({ open, onClose, businessId, onSuccess }: Props
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await businessesApi.createOwner(businessId, form);
+      const payload = onboardingAccount
+        ? { email: form.email, full_name: "NextGen Onboarding", role: "MANAGER" as const, is_onboarding_account: true }
+        : form;
+      const res = await businessesApi.createOwner(businessId, payload);
       setCreatedEmail(res.email);
       setCreatedPassword(res.temporary_password);
       onSuccess?.();
@@ -76,27 +88,40 @@ export function CreateOwnerModal({ open, onClose, businessId, onSuccess }: Props
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>Create Owner / Manager</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{onboardingAccount ? "Create Your Onboarding Login" : "Create Owner / Manager"}</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {onboardingAccount && (
+            <p className="text-xs text-muted-foreground">
+              This is a temporary MANAGER login for YOU to configure this restaurant in the Manager Dashboard.
+              It's automatically deactivated once you complete handover below.
+            </p>
+          )}
           <div className="space-y-1.5">
-            <Label>Email</Label>
-            <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
+            <Label htmlFor="owner-email">Email</Label>
+            <Input id="owner-email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
           </div>
-          <div className="space-y-1.5">
-            <Label>Full Name</Label>
-            <Input value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} required />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Role</Label>
-            <select
-              value={form.role}
-              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as "OWNER" | "MANAGER" }))}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="OWNER">Owner</option>
-              <option value="MANAGER">Manager</option>
-            </select>
-          </div>
+          {!onboardingAccount && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="owner-full-name">Full Name</Label>
+                <Input id="owner-full-name" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="owner-role">Role</Label>
+                <select
+                  id="owner-role"
+                  value={form.role}
+                  onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as "OWNER" | "MANAGER" }))}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="OWNER">Owner</option>
+                  <option value="MANAGER">Manager</option>
+                </select>
+              </div>
+            </>
+          )}
           <p className="text-xs text-muted-foreground">
             A temporary password will be generated automatically and shown once after creation.
           </p>
