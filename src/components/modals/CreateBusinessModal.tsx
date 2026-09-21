@@ -1,9 +1,12 @@
 import { useState, useCallback } from "react";
 import { businessesApi } from "@/api/businesses";
+import type { ModuleFlagKey } from "@/lib/modules";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlanSelect } from "@/components/modals/PlanSelect";
+import { ModuleTogglesFieldset } from "@/components/modals/ModuleTogglesFieldset";
 import { toast } from "sonner";
 
 interface Props {
@@ -38,6 +41,20 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createdOwnerPassword, setCreatedOwnerPassword] = useState<string | null>(null);
   const [createdOwnerEmail, setCreatedOwnerEmail] = useState("");
+  // Module switches: the backend's BusinessCreate schema does NOT accept
+  // these (verified by reading routes_businesses.py) -- so any module
+  // choice made here is applied as a follow-up PATCH right after create
+  // succeeds, not part of the create payload itself. See handleSubmit.
+  const [moduleChanges, setModuleChanges] = useState<Partial<Record<ModuleFlagKey, boolean>>>({});
+
+  const setModuleFlag = (key: ModuleFlagKey, value: boolean | undefined) => {
+    setModuleChanges((prev) => {
+      const next = { ...prev };
+      if (value === undefined) delete next[key];
+      else next[key] = value;
+      return next;
+    });
+  };
 
   const set = useCallback((key: string, value: string | number) => {
     setForm((prev) => {
@@ -71,6 +88,7 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
       daily_order_limit: 200, owner_email: "", owner_full_name: "",
     });
     setSlugManual(false);
+    setModuleChanges({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,7 +100,24 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
       const payload = { ...form };
       if (!payload.slug.trim()) delete (payload as Record<string, unknown>).slug;
       const biz = await businessesApi.create(payload);
-      toast.success("Business created successfully");
+
+      // Module switches aren't accepted by BusinessCreate -- apply them as
+      // an immediate follow-up PATCH. The business already exists at this
+      // point, so a failure here is a distinct, visible partial failure,
+      // not silently dropped.
+      if (Object.keys(moduleChanges).length > 0) {
+        try {
+          await businessesApi.update(biz.id, moduleChanges);
+          toast.success("Business created successfully");
+        } catch (moduleErr: unknown) {
+          toast.error(
+            `Business created, but module settings failed to save${moduleErr instanceof Error ? `: ${moduleErr.message}` : ""}. Open the business and use Edit to set them.`
+          );
+        }
+      } else {
+        toast.success("Business created successfully");
+      }
+
       onSuccess();
       if (biz.owner_temporary_password) {
         setCreatedOwnerEmail(form.owner_email);
@@ -176,7 +211,7 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>Plan</Label>
-              <Input value={form.plan} onChange={(e) => set("plan", e.target.value)} />
+              <PlanSelect value={form.plan} onChange={(v) => set("plan", v)} />
             </div>
           </div>
 
@@ -202,6 +237,10 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
               <Input type="number" value={form.daily_order_limit} onChange={(e) => set("daily_order_limit", Number(e.target.value))} />
             </div>
           </div>
+
+          <hr className="border-border" />
+          <p className="text-sm font-medium">Modules</p>
+          <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
 
           <hr className="border-border" />
           <p className="text-sm font-medium">Owner Account</p>

@@ -11,6 +11,7 @@ import type {
   ResetPasswordResponse,
   WhatsAppTestRequest,
   WhatsAppTestResponse,
+  OrderPackRequest,
 } from "@/types/business";
 
 export const businessesApi = {
@@ -47,6 +48,10 @@ export const businessesApi = {
 
   setLimits(id: string, data: SetLimitsRequest): Promise<Business> {
     return apiClient.post<Business>(`/v1/admin/admin/businesses/${id}/limits`, data);
+  },
+
+  orderPack(id: string, data: OrderPackRequest): Promise<Business> {
+    return apiClient.post<Business>(`/v1/admin/admin/businesses/${id}/order-pack`, data);
   },
 
   createOwner(id: string, data: CreateOwnerRequest): Promise<CreateOwnerResponse> {

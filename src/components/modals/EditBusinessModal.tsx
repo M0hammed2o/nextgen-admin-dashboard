@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { businessesApi } from "@/api/businesses";
 import type { Business } from "@/types/business";
+import type { ModuleFlagKey } from "@/lib/modules";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlanSelect } from "@/components/modals/PlanSelect";
+import { ModuleTogglesFieldset } from "@/components/modals/ModuleTogglesFieldset";
 import { toast } from "sonner";
 
 interface Props {
@@ -32,8 +35,20 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
     stripe_subscription_id: business.stripe_subscription_id ?? "",
     billing_status: business.billing_status ?? "",
   });
+  // Module switches: see ModuleTogglesFieldset -- a key only appears here
+  // once the admin explicitly chooses On/Off for it; "Leave" removes the key.
+  const [moduleChanges, setModuleChanges] = useState<Partial<Record<ModuleFlagKey, boolean>>>({});
 
   const set = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
+
+  const setModuleFlag = (key: ModuleFlagKey, value: boolean | undefined) => {
+    setModuleChanges((prev) => {
+      const next = { ...prev };
+      if (value === undefined) delete next[key];
+      else next[key] = value;
+      return next;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +68,7 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
       // are required, non-nullable columns, and blanking those is a separate,
       // pre-existing form-validation concern this fix isn't meant to touch.
       const nullableKeys = ["whatsapp_phone_number_id", "stripe_customer_id", "stripe_subscription_id"] as const;
-      const payload: Record<string, string | null> = { ...form };
+      const payload: Record<string, string | null | boolean> = { ...form, ...moduleChanges };
       for (const key of nullableKeys) {
         if (payload[key] === "") payload[key] = null;
       }
@@ -70,13 +85,12 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Edit Business</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
             { label: "Name", key: "name" },
             { label: "Timezone", key: "timezone" },
-            { label: "Plan", key: "plan" },
             { label: "WhatsApp Phone ID", key: "whatsapp_phone_number_id" },
             { label: "Stripe Customer ID", key: "stripe_customer_id" },
             { label: "Stripe Subscription ID", key: "stripe_subscription_id" },
@@ -87,6 +101,15 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
               <Input value={(form as Record<string, string>)[key]} onChange={(e) => set(key, e.target.value)} />
             </div>
           ))}
+          <div className="space-y-1.5">
+            <Label>Plan</Label>
+            <PlanSelect value={form.plan} onChange={(v) => set("plan", v)} />
+          </div>
+
+          <hr className="border-border" />
+          <p className="text-sm font-medium">Modules</p>
+          <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={loading}>{loading ? "Saving…" : "Save"}</Button>

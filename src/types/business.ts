@@ -29,6 +29,15 @@ export interface Business {
   // Present only in the response right after creation (owner_email was set) —
   // shown once, never returned by GET/PATCH.
   owner_temporary_password?: string | null;
+  // ── Module switches: NOT included here on purpose ──────────────────────
+  // is_whatsapp_enabled / inventory_enabled / staff_live_orders_tab_enabled /
+  // staff_wastage_tab_enabled / staff_stocktake_tab_enabled all exist on the
+  // backend's Business model and its BusinessUpdate (PATCH) schema, but
+  // BusinessAdminResponse (admin_api/app/api/v1/routes_businesses.py) does
+  // NOT return any of them today — verified by reading the schema, not
+  // assumed. Do not add them here as if GET/PATCH responses carry a real
+  // value; the UI (EditBusinessModal, BusinessDetailsPage) treats these as
+  // write-only until a backend engineer adds them to the response model.
 }
 
 export interface CreateBusinessRequest {
@@ -57,6 +66,26 @@ export interface UpdateBusinessRequest {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   billing_status?: string;
+
+  // ── Per-tenant module switches (Ciao Pizza P0) ──────────────────────────
+  // Accepted by the backend's BusinessUpdate schema but not surfaced here
+  // until now -- selling e.g. the Inventory module previously required a
+  // hand-made API call outside this UI. Only include a key here when the
+  // admin has actually chosen to change it (see EditBusinessModal's
+  // dirty-tracking) -- the backend applies PATCH with exclude_unset=True,
+  // so omitting a key leaves its current value untouched, but explicitly
+  // sending `false` would actively disable a module whose real current
+  // state this UI cannot see (BusinessAdminResponse doesn't return these
+  // fields yet -- see the note on the Business interface above).
+  is_whatsapp_enabled?: boolean;
+  inventory_enabled?: boolean;
+  staff_live_orders_tab_enabled?: boolean;
+  staff_wastage_tab_enabled?: boolean;
+  staff_stocktake_tab_enabled?: boolean;
+}
+
+export interface OrderPackRequest {
+  pack_size: number;
 }
 
 export interface SuspendRequest {

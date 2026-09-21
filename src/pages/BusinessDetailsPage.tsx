@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { businessesApi } from "@/api/businesses";
 import type { Business, BusinessUserSummary } from "@/types/business";
+import { MODULE_FLAGS } from "@/lib/modules";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Edit, Ban, Unlock, Gauge, UserPlus, MessageSquare, FileDown, ExternalLink, KeyRound } from "lucide-react";
+import { ArrowLeft, Edit, Ban, Unlock, Gauge, UserPlus, MessageSquare, FileDown, ExternalLink, KeyRound, PackagePlus } from "lucide-react";
 import { EditBusinessModal } from "@/components/modals/EditBusinessModal";
 import { SuspendModal } from "@/components/modals/SuspendModal";
 import { UnsuspendModal } from "@/components/modals/UnsuspendModal";
 import { SetLimitsModal } from "@/components/modals/SetLimitsModal";
+import { OrderPackModal } from "@/components/modals/OrderPackModal";
 import { CreateOwnerModal } from "@/components/modals/CreateOwnerModal";
 import { WhatsAppTestModal } from "@/components/modals/WhatsAppTestModal";
 import { toast } from "sonner";
@@ -36,10 +38,12 @@ export default function BusinessDetailsPage() {
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [unsuspendOpen, setUnsuspendOpen] = useState(false);
   const [limitsOpen, setLimitsOpen] = useState(false);
+  const [orderPackOpen, setOrderPackOpen] = useState(false);
   const [ownerOpen, setOwnerOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
 
   const [users, setUsers] = useState<BusinessUserSummary[]>([]);
+  const [usersError, setUsersError] = useState("");
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [resetResult, setResetResult] = useState<{ email: string | null; password: string } | null>(null);
 
@@ -51,7 +55,8 @@ export default function BusinessDetailsPage() {
 
   const fetchUsers = () => {
     if (!id) return;
-    businessesApi.listUsers(id).then(setUsers).catch(() => {});
+    setUsersError("");
+    businessesApi.listUsers(id).then(setUsers).catch((e: unknown) => setUsersError(e instanceof Error ? e.message : "Failed to load owners/managers"));
   };
 
   useEffect(() => { fetchUsers(); }, [id]);
@@ -143,6 +148,9 @@ export default function BusinessDetailsPage() {
         <Button variant="outline" size="sm" onClick={() => setLimitsOpen(true)} className="gap-1.5">
           <Gauge className="w-3.5 h-3.5" /> Set Limits
         </Button>
+        <Button variant="outline" size="sm" onClick={() => setOrderPackOpen(true)} className="gap-1.5">
+          <PackagePlus className="w-3.5 h-3.5" /> Order Pack
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setOwnerOpen(true)} className="gap-1.5">
           <UserPlus className="w-3.5 h-3.5" /> Create Owner/Manager
         </Button>
@@ -217,11 +225,40 @@ export default function BusinessDetailsPage() {
             <InfoRow label="Suspended Reason" value={<span className="text-destructive">{business.suspended_reason}</span>} />
           )}
         </div>
+
+        <div className="bg-card border border-border rounded-xl p-5 lg:col-span-2">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-sm font-semibold">Modules</h3>
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setEditOpen(true)}>
+              <Edit className="w-3 h-3" /> Edit
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">
+            The platform API doesn't return each module's current on/off state yet (a known backend gap, see
+            KNOWN_BUGS.md) — use Edit to explicitly turn a module on or off for this business.
+          </p>
+          <div className="divide-y divide-border">
+            {MODULE_FLAGS.map((f) => (
+              <div key={f.key} className="flex items-start justify-between gap-3 py-2">
+                <div>
+                  <p className="text-sm font-medium">{f.label}</p>
+                  <p className="text-xs text-muted-foreground">{f.description}</p>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">Unknown</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-5">
         <h3 className="text-sm font-semibold mb-3">Owners & Managers</h3>
-        {users.length === 0 ? (
+        {usersError ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-destructive mb-2">{usersError}</p>
+            <Button variant="outline" size="sm" onClick={fetchUsers}>Retry</Button>
+          </div>
+        ) : users.length === 0 ? (
           <p className="text-sm text-muted-foreground">No owner/manager logins yet.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -270,6 +307,7 @@ export default function BusinessDetailsPage() {
       <SuspendModal open={suspendOpen} onClose={() => setSuspendOpen(false)} businessId={business.id} onSuccess={handleUpdate} />
       <UnsuspendModal open={unsuspendOpen} onClose={() => setUnsuspendOpen(false)} businessId={business.id} businessName={business.name} onSuccess={handleUpdate} />
       <SetLimitsModal open={limitsOpen} onClose={() => setLimitsOpen(false)} business={business} onSuccess={handleUpdate} />
+      <OrderPackModal open={orderPackOpen} onClose={() => setOrderPackOpen(false)} business={business} onSuccess={handleUpdate} />
       <CreateOwnerModal open={ownerOpen} onClose={() => setOwnerOpen(false)} businessId={business.id} onSuccess={fetchUsers} />
       <WhatsAppTestModal open={whatsappOpen} onClose={() => setWhatsappOpen(false)} businessId={business.id} />
 
