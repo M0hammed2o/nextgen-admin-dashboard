@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, Mail, BarChart3, ScrollText, ExternalLink,
-  ClipboardCheck, ShieldCheck, type LucideIcon,
+  ClipboardCheck, ShieldCheck, DollarSign, type LucideIcon,
 } from "lucide-react";
 import type { AdminRole } from "@/types/auth";
 
@@ -27,6 +27,11 @@ export interface NavItem {
 // server-side (see admin_api/app/core/deps.py) and RoleRoute below.
 export const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["SUPER_ADMIN"] },
+  // Sales/commercial UI (Wave 0A) -- visible to BOTH roles: ONBOARDER's
+  // actual landing page (see HomeRoute), and SUPER_ADMIN's platform-wide
+  // commercial view. Unlike Businesses/Dashboard/Usage/Audit above, this is
+  // deliberately not SUPER_ADMIN-only.
+  { title: "Sales", path: "/sales", icon: DollarSign },
   { title: "Businesses", path: "/businesses", icon: Building2, roles: ["SUPER_ADMIN"] },
   { title: "Onboarding", path: "/onboarding", icon: ClipboardCheck },
   { title: "AI Emails", path: "/ai-emails", icon: Mail, roles: ["SUPER_ADMIN"] },
@@ -59,6 +64,8 @@ export const EXTERNAL_NAV_LINKS: ExternalNavLink[] = [
 // AdminTopbar via a startsWith check).
 export const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
+  "/sales": "Sales Dashboard",
+  "/sales/clients": "Clients",
   "/businesses": "Businesses",
   "/onboarding": "Onboarding",
   "/ai-emails": "AI Emails",

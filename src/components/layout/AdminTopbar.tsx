@@ -27,7 +27,8 @@ export function AdminTopbar() {
   const title =
     pageTitles[location.pathname] ||
     (location.pathname.startsWith("/businesses/") ? "Business Details" :
-     location.pathname.startsWith("/onboarding/") ? "Onboarding Workspace" : "Admin");
+     location.pathname.startsWith("/onboarding/") ? "Onboarding Workspace" :
+     location.pathname.startsWith("/sales/clients/") ? "Client" : "Admin");
 
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);

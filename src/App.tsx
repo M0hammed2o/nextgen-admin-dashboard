@@ -11,6 +11,9 @@ import HomeRoute from "@/routes/HomeRoute";
 import LoginPage from "./pages/LoginPage";
 import BusinessesPage from "./pages/BusinessesPage";
 import BusinessDetailsPage from "./pages/BusinessDetailsPage";
+import SalesDashboardPage from "./pages/SalesDashboardPage";
+import SalesClientsPage from "./pages/SalesClientsPage";
+import SalesClientPage from "./pages/SalesClientPage";
 import OnboardingListPage from "./pages/OnboardingListPage";
 import OnboardingWorkspacePage from "./pages/OnboardingWorkspacePage";
 import AdminUsersPage from "./pages/AdminUsersPage";
@@ -40,6 +43,9 @@ const App = () => (
             }
           >
             <Route path="/" element={<HomeRoute />} />
+            <Route path="/sales" element={<SalesDashboardPage />} />
+            <Route path="/sales/clients" element={<SalesClientsPage />} />
+            <Route path="/sales/clients/:id" element={<SalesClientPage />} />
             <Route path="/businesses" element={<RoleRoute roles={["SUPER_ADMIN"]}><BusinessesPage /></RoleRoute>} />
             <Route path="/businesses/:id" element={<RoleRoute roles={["SUPER_ADMIN"]}><BusinessDetailsPage /></RoleRoute>} />
             <Route path="/onboarding" element={<OnboardingListPage />} />
