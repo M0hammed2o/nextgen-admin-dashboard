@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlanSelect } from "@/components/modals/PlanSelect";
 import { ModuleTogglesFieldset } from "@/components/modals/ModuleTogglesFieldset";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 interface Props {
@@ -37,6 +38,7 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
     owner_email: "",
     owner_full_name: "",
   });
+  const [startTrial, setStartTrial] = useState(true);
   const [slugManual, setSlugManual] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createdOwnerPassword, setCreatedOwnerPassword] = useState<string | null>(null);
@@ -87,6 +89,7 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
       whatsapp_phone_number_id: "", daily_message_limit: 800, daily_llm_call_limit: 400,
       daily_order_limit: 200, owner_email: "", owner_full_name: "",
     });
+    setStartTrial(true);
     setSlugManual(false);
     setModuleChanges({});
   };
@@ -97,7 +100,7 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
     setLoading(true);
     try {
       // Send slug only if non-empty, else backend auto-generates
-      const payload = { ...form };
+      const payload: typeof form & { start_trial: boolean } = { ...form, start_trial: startTrial };
       if (!payload.slug.trim()) delete (payload as Record<string, unknown>).slug;
       const biz = await businessesApi.create(payload);
 
@@ -241,6 +244,17 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
           <hr className="border-border" />
           <p className="text-sm font-medium">Modules</p>
           <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
+
+          <hr className="border-border" />
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={startTrial} onCheckedChange={(v) => setStartTrial(v === true)} />
+            Start a 14-day free trial immediately
+          </label>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {startTrial
+              ? "This business is created on a trial (the default)."
+              : "This business is created ACTIVE with no trial — for a client invoiced/paying from day one."}
+          </p>
 
           <hr className="border-border" />
           <p className="text-sm font-medium">Owner Account</p>

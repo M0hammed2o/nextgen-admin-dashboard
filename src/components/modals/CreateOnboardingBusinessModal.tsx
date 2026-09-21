@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlanSelect } from "@/components/modals/PlanSelect";
 import { ModuleTogglesFieldset } from "@/components/modals/ModuleTogglesFieldset";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 interface Props {
@@ -41,6 +42,7 @@ export function CreateOnboardingBusinessModal({ open, onClose, onSuccess }: Prop
     plan: "STARTER",
     whatsapp_phone_number_id: "",
   });
+  const [startTrial, setStartTrial] = useState(true);
   const [slugManual, setSlugManual] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [moduleChanges, setModuleChanges] = useState<Partial<Record<ModuleFlagKey, boolean>>>({});
@@ -69,6 +71,7 @@ export function CreateOnboardingBusinessModal({ open, onClose, onSuccess }: Prop
 
   const resetForm = () => {
     setForm({ name: "", slug: "", timezone: "Africa/Johannesburg", plan: "STARTER", whatsapp_phone_number_id: "" });
+    setStartTrial(true);
     setSlugManual(false);
     setModuleChanges({});
     setErrors({});
@@ -92,6 +95,7 @@ export function CreateOnboardingBusinessModal({ open, onClose, onSuccess }: Prop
         name: form.name,
         timezone: form.timezone,
         plan: form.plan,
+        start_trial: startTrial,
         ...(form.slug.trim() ? { slug: form.slug } : {}),
         ...(form.whatsapp_phone_number_id.trim() ? { whatsapp_phone_number_id: form.whatsapp_phone_number_id } : {}),
       };
@@ -157,6 +161,17 @@ export function CreateOnboardingBusinessModal({ open, onClose, onSuccess }: Prop
           <hr className="border-border" />
           <p className="text-sm font-medium">Modules</p>
           <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
+
+          <hr className="border-border" />
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={startTrial} onCheckedChange={(v) => setStartTrial(v === true)} />
+            Start a 14-day free trial immediately
+          </label>
+          <p className="text-xs text-muted-foreground -mt-2">
+            {startTrial
+              ? "This business is created on a trial (BusinessCreate.start_trial=true, the default)."
+              : "This business is created ACTIVE with no trial — for a client invoiced/paying from day one."}
+          </p>
 
           <p className="text-xs text-muted-foreground">
             Owner and staff logins are created in the next step, after this restaurant exists.
