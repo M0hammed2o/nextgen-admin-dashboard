@@ -11,6 +11,7 @@ import { toast } from "sonner";
 export default function AuditPage() {
   const [records, setRecords] = useState<AuditRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
   const [businessId, setBusinessId] = useState("");
@@ -19,12 +20,13 @@ export default function AuditPage() {
 
   const fetchAudit = () => {
     setLoading(true);
+    setError("");
     auditApi.list({
       page,
       per_page: perPage,
       business_id: businessId || undefined,
       scope: scope || undefined,
-    }).then(setRecords).catch(() => {}).finally(() => setLoading(false));
+    }).then(setRecords).catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load audit records")).finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchAudit(); }, [page, perPage]);
@@ -52,6 +54,11 @@ export default function AuditPage() {
         {loading ? (
           <div className="p-4 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 rounded" />)}
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button variant="outline" onClick={fetchAudit}>Retry</Button>
           </div>
         ) : records.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">

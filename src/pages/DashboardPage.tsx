@@ -25,10 +25,18 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    businessesApi.list({ per_page: 100 }).then(setBusinesses).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  const fetchBusinesses = () => {
+    setLoading(true);
+    setError("");
+    businessesApi.list({ per_page: 100 })
+      .then(setBusinesses)
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load dashboard data"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchBusinesses(); }, []);
 
   const active = businesses.filter((b) => b.is_active).length;
   const suspended = businesses.filter((b) => !b.is_active).length;
@@ -41,6 +49,15 @@ export default function DashboardPage() {
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
         <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-destructive mb-4">{error}</p>
+        <Button variant="outline" onClick={fetchBusinesses}>Retry</Button>
       </div>
     );
   }

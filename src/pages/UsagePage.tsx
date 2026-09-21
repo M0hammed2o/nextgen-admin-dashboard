@@ -20,16 +20,22 @@ export default function UsagePage() {
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    // Deliberately still swallowed: this is only the label source for the
+    // "Business" filter dropdown, not the page's primary data. businessName()
+    // already falls back to a shortened raw ID if a business isn't found, so
+    // failure here degrades the filter labels, not the usage data itself.
     businessesApi.list({ per_page: 100 }).then(setBusinesses).catch(() => {});
   }, []);
 
   const fetchUsage = () => {
     setLoading(true);
+    setError("");
     usageApi.get({ start_date: startDate, end_date: endDate, business_id: businessId || undefined })
       .then(setRecords)
-      .catch(() => {})
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load usage data"))
       .finally(() => setLoading(false));
   };
 
@@ -97,6 +103,11 @@ export default function UsagePage() {
 
       {loading ? (
         <Skeleton className="h-64 rounded-xl" />
+      ) : error ? (
+        <div className="bg-card border border-border rounded-xl p-12 text-center">
+          <p className="text-destructive mb-4">{error}</p>
+          <Button variant="outline" onClick={fetchUsage}>Retry</Button>
+        </div>
       ) : records.length > 0 ? (
         <>
           <div className="bg-card border border-border rounded-xl p-5">

@@ -17,6 +17,7 @@ export default function BusinessesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -32,10 +33,11 @@ export default function BusinessesPage() {
 
   const fetchBusinesses = () => {
     setLoading(true);
+    setError("");
     const isActive = filter === "active" ? true : filter === "suspended" ? false : null;
     businessesApi.list({ is_active: isActive, page, per_page: perPage })
       .then(setBusinesses)
-      .catch(() => {})
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load businesses"))
       .finally(() => setLoading(false));
   };
 
@@ -107,6 +109,13 @@ export default function BusinessesPage() {
                     ))}
                   </tr>
                 ))
+              ) : error ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-12">
+                    <p className="text-sm text-destructive mb-3">{error}</p>
+                    <Button variant="outline" size="sm" onClick={fetchBusinesses}>Retry</Button>
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-muted-foreground">No businesses found.</td>
