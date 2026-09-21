@@ -1,11 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { LogOut, Zap } from "lucide-react";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/lib/constants";
-import { NAV_ITEMS as navItems, EXTERNAL_NAV_LINKS as externalLinks } from "@/lib/navigation";
+import { navItemsForRole, EXTERNAL_NAV_LINKS as externalLinks } from "@/lib/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 export function AdminSidebar() {
   const location = useLocation();
+  const { me } = useAuth();
+  const navItems = navItemsForRole(me?.role);
 
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);

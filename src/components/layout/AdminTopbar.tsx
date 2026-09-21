@@ -3,11 +3,19 @@ import { Menu, LogOut, Moon, Sun } from "lucide-react";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/lib/constants";
 import { useState, useEffect } from "react";
 import { Zap, X } from "lucide-react";
-import { NAV_ITEMS as navItems, PAGE_TITLES as pageTitles } from "@/lib/navigation";
+import { navItemsForRole, PAGE_TITLES as pageTitles } from "@/lib/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: "Super Admin",
+  ONBOARDER: "Onboarder",
+};
 
 export function AdminTopbar() {
   const location = useLocation();
+  const { me } = useAuth();
+  const navItems = navItemsForRole(me?.role);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
 
@@ -18,7 +26,8 @@ export function AdminTopbar() {
 
   const title =
     pageTitles[location.pathname] ||
-    (location.pathname.startsWith("/businesses/") ? "Business Details" : "Admin");
+    (location.pathname.startsWith("/businesses/") ? "Business Details" :
+     location.pathname.startsWith("/onboarding/") ? "Onboarding Workspace" : "Admin");
 
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);
@@ -46,9 +55,11 @@ export function AdminTopbar() {
           >
             {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-          <span className="hidden sm:inline text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            Super Admin
-          </span>
+          {me && (
+            <span className="hidden sm:inline text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+              {ROLE_LABELS[me.role] ?? me.role}
+            </span>
+          )}
           <button
             onClick={handleLogout}
             className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
