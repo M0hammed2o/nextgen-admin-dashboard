@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { businessesApi } from "@/api/businesses";
 import type { Business, BusinessUserSummary } from "@/types/business";
-import { MODULE_FLAGS } from "@/lib/modules";
+import { MODULE_FLAGS, PENDING_MODULE_FLAGS } from "@/lib/modules";
 import { DASH_URL } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -249,6 +249,20 @@ export default function BusinessDetailsPage() {
                 </div>
               );
             })}
+            {PENDING_MODULE_FLAGS.map((f) => (
+              <div key={f.key} className="flex items-start justify-between gap-3 py-2 opacity-70">
+                <div>
+                  <p className="text-sm font-medium">{f.label}</p>
+                  <p className="text-xs text-muted-foreground">{f.description}</p>
+                </div>
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground"
+                  title="The admin API doesn't return this flag yet, so its real on/off state can't be shown here -- see KNOWN_BUGS.md BUG-0072."
+                >
+                  Not available yet
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

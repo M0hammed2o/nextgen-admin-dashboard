@@ -61,4 +61,22 @@ describe("ModuleTogglesFieldset dirty-tracking", () => {
     fireEvent.click(leaveButton);
     expect(latest).toEqual({});
   });
+
+  // Digital Receipts (BUG-0072): admin_api doesn't accept this field on
+  // PATCH or return it on GET at all, so it must render as a disabled,
+  // non-interactive row -- never a Switch or Leave/On/Off control -- and
+  // must never be capable of entering `changes` (which is exactly what
+  // would happen if it were wired up like a real ModuleFlagKey: a click
+  // that produces a 200 "success" response while silently changing
+  // nothing on the backend).
+  it("renders Digital Receipts as a disabled row with no interactive control, and it never enters `changes`", () => {
+    let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
+    render(<Harness onChangesUpdate={(c) => (latest = c)} />);
+
+    const digitalReceiptsRow = screen.getByText("Digital Receipts").closest("div")!.parentElement!;
+    expect(digitalReceiptsRow.querySelectorAll("button")).toHaveLength(0);
+    expect(digitalReceiptsRow.querySelectorAll('[role="switch"]')).toHaveLength(0);
+    expect(screen.getByText("Not available yet")).toBeInTheDocument();
+    expect(latest).toEqual({});
+  });
 });

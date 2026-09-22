@@ -1,4 +1,4 @@
-import { MODULE_FLAGS, type ModuleFlagKey } from "@/lib/modules";
+import { MODULE_FLAGS, PENDING_MODULE_FLAGS, type ModuleFlagKey } from "@/lib/modules";
 import { Switch } from "@/components/ui/switch";
 
 interface Props {
@@ -29,6 +29,13 @@ interface Props {
  * defaulting an unknown flag to "off" and saving would silently disable a
  * module this UI can't see is already enabled, so "Leave" is the only safe
  * default in that case.
+ *
+ * Also renders PENDING_MODULE_FLAGS (currently just Digital Receipts) as a
+ * disabled, label-only row after the real toggles -- these are flags the
+ * admin_api layer doesn't accept on PATCH or return on GET at all (a bigger
+ * gap than the tri-state case above, which still assumes PATCH acceptance),
+ * so no interactive control is offered; see modules.ts's own comment and
+ * KNOWN_BUGS.md BUG-0072.
  */
 export function ModuleTogglesFieldset({ changes, onChange, current }: Props) {
   const anyUnknown = MODULE_FLAGS.some((f) => current?.[f.key] === undefined);
@@ -89,6 +96,20 @@ export function ModuleTogglesFieldset({ changes, onChange, current }: Props) {
           </div>
         );
       })}
+      {PENDING_MODULE_FLAGS.map((flag) => (
+        <div key={flag.key} className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0 opacity-70">
+          <div>
+            <p className="text-sm font-medium">{flag.label}</p>
+            <p className="text-xs text-muted-foreground">{flag.description}</p>
+          </div>
+          <span
+            className="text-xs px-2 py-1 rounded-md font-medium bg-muted text-muted-foreground shrink-0"
+            title="The admin API doesn't accept or return this flag yet, so there's nothing this control could actually save -- see KNOWN_BUGS.md BUG-0072."
+          >
+            Not available yet
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
