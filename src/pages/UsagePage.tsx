@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { BarChart3 } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function UsagePage() {
   const today = new Date();
@@ -153,8 +155,12 @@ export default function UsagePage() {
           </div>
         </>
       ) : (
-        <div className="bg-card border border-border rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">No usage data for the selected period.</p>
+        <div className="bg-card border border-border rounded-xl">
+          <EmptyState
+            icon={BarChart3}
+            title="No usage data for the selected period."
+            description="Try a wider date range or clear the business filter."
+          />
         </div>
       )}
     </div>

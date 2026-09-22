@@ -5,8 +5,9 @@ import { formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, ChevronDown, ChevronUp, ScrollText } from "lucide-react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function AuditPage() {
   const [records, setRecords] = useState<AuditRecord[]>([]);
@@ -61,10 +62,11 @@ export default function AuditPage() {
             <Button variant="outline" onClick={fetchAudit}>Retry</Button>
           </div>
         ) : records.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-base font-medium">No audit records found</p>
-            <p className="text-sm mt-1">Try adjusting your filters or check back later.</p>
-          </div>
+          <EmptyState
+            icon={ScrollText}
+            title="No audit records found"
+            description="Try adjusting your filters or check back later."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

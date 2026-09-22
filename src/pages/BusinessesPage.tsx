@@ -6,9 +6,10 @@ import { formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Ban, Unlock } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, MoreHorizontal, Eye, Edit, Ban, Unlock, Building2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CreateBusinessModal } from "@/components/modals/CreateBusinessModal";
+import { EmptyState } from "@/components/EmptyState";
 
 type Filter = "all" | "active" | "suspended";
 
@@ -118,7 +119,14 @@ export default function BusinessesPage() {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-muted-foreground">No businesses found.</td>
+                  <td colSpan={8}>
+                    <EmptyState
+                      icon={Building2}
+                      title="No businesses found."
+                      description={search || filter !== "all" ? "Try a different search term or filter." : "Create your first business to get started."}
+                      action={{ label: "Create Business", onClick: () => setCreateOpen(true) }}
+                    />
+                  </td>
                 </tr>
               ) : (
                 filtered.map((b) => (

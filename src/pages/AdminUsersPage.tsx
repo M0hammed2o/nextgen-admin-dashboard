@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, KeyRound } from "lucide-react";
+import { Plus, KeyRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { EmptyState } from "@/components/EmptyState";
 
 const ROLE_LABELS: Record<AdminRole, string> = { SUPER_ADMIN: "Super Admin", ONBOARDER: "Onboarder" };
 
@@ -193,7 +194,11 @@ export default function AdminUsersPage() {
             <Button variant="outline" size="sm" onClick={fetchUsers}>Retry</Button>
           </div>
         ) : users.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">No admin users yet.</div>
+          <EmptyState
+            icon={Users}
+            title="No admin users yet."
+            action={{ label: "New Admin User", onClick: () => setCreateOpen(true) }}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

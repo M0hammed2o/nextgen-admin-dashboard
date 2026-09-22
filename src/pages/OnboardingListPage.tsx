@@ -6,9 +6,10 @@ import type { OnboardingStatusResponse } from "@/types/onboarding";
 import { formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight, ClipboardList } from "lucide-react";
 import { CreateOnboardingBusinessModal } from "@/components/modals/CreateOnboardingBusinessModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { EmptyState } from "@/components/EmptyState";
 
 // Cache of go-live readiness per business, loaded after the list itself so
 // the page renders quickly even if a later onboarding-status call is slow
@@ -88,9 +89,11 @@ export default function OnboardingListPage() {
             <Button variant="outline" size="sm" onClick={fetchBusinesses}>Retry</Button>
           </div>
         ) : businesses.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            No restaurants in onboarding right now. Click "New Restaurant" to start one.
-          </div>
+          <EmptyState
+            icon={ClipboardList}
+            title="No restaurants in onboarding right now"
+            action={{ label: "New Restaurant", onClick: () => setCreateOpen(true) }}
+          />
         ) : (
           <div className="divide-y divide-border">
             {businesses.map((b) => {
