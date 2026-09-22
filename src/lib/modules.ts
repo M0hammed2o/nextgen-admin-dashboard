@@ -5,15 +5,17 @@
 // descriptions can't drift apart between those places.
 //
 // BusinessAdminResponse AND BusinessOnboarderResponse now both return these
-// fields (verified by reading the backend schema, 2026-09-21 -- previously
-// they didn't, see the now-fixed KNOWN_BUGS.md entry). ModuleTogglesFieldset
-// renders a normal on/off Switch when a caller passes the real current value
-// via its `current` prop, and falls back to the old write-only tri-state
-// control only when it genuinely doesn't have one (e.g. at business-creation
-// time, before the business exists).
+// fields (verified by reading the backend schema, 2026-09-22 -- previously
+// they didn't, see the now-fixed KNOWN_BUGS.md entries, including BUG-0072
+// for digital_receipts_enabled specifically). ModuleTogglesFieldset renders
+// a normal on/off Switch when a caller passes the real current value via its
+// `current` prop, and falls back to the old write-only tri-state control
+// only when it genuinely doesn't have one (e.g. at business-creation time,
+// before the business exists).
 export type ModuleFlagKey =
   | "is_whatsapp_enabled"
   | "inventory_enabled"
+  | "digital_receipts_enabled"
   | "staff_live_orders_tab_enabled"
   | "staff_wastage_tab_enabled"
   | "staff_stocktake_tab_enabled";
@@ -36,6 +38,11 @@ export const MODULE_FLAGS: ModuleFlagDef[] = [
     description: "Turns on ingredients, recipes, stock levels, stocktake, and wastage tracking for this restaurant.",
   },
   {
+    key: "digital_receipts_enabled",
+    label: "Digital Receipts",
+    description: "Lets customers receive a WhatsApp copy of their receipt after a sale. Printing is unaffected by this switch.",
+  },
+  {
     key: "staff_live_orders_tab_enabled",
     label: "Staff App: Live Orders tab",
     description: "Shows the Live Orders tab in the staff till/kitchen app.",
@@ -52,36 +59,15 @@ export const MODULE_FLAGS: ModuleFlagDef[] = [
   },
 ];
 
-// ── Digital Receipts (Commercial V1 gate, migration 0039) ──────────────────
-// `Business.digital_receipts_enabled` exists on the shared model (added
-// 2026-09-22, same night as this entry) but, unlike every flag in
-// MODULE_FLAGS above, the admin_api layer was never updated to match:
-// verified by reading admin_api/app/api/v1/routes_businesses.py 2026-09-22 --
-// it is in NEITHER `BusinessUpdate` NOR `ONBOARDER_PATCH_ALLOWED_FIELDS`
-// (so PATCH silently drops it -- Pydantic's default `extra="ignore"` means
-// sending it would return 200 while changing nothing), NOR
-// `BusinessAdminResponse`/`BusinessOnboarderResponse` (so GET can't show its
-// real state either). This is a strictly bigger gap than the old
-// write-only/tri-state pattern MODULE_FLAGS's own history describes (see
-// KNOWN_BUGS.md BUG-0072) -- that pattern assumed PATCH acceptance, which
-// this flag doesn't have. Reusing it as-is here would produce a working-
-// looking Leave/On/Off control whose "On"/"Off" clicks silently no-op on
-// save, i.e. exactly the fake-success pattern this codebase treats as a bug
-// class (see BUG-0004). So this flag is intentionally NOT a ModuleFlagKey --
-// it must never be spread into a `changes`/PATCH payload until admin_api
-// actually accepts and returns it. ModuleTogglesFieldset renders it as a
-// disabled, informational row instead. Promote it to a real ModuleFlagDef
-// (and to ModuleFlagKey) once BUG-0072 is fixed.
-export interface PendingModuleFlagDef {
-  key: "digital_receipts_enabled";
-  label: string;
-  description: string;
-}
-
-export const PENDING_MODULE_FLAGS: PendingModuleFlagDef[] = [
-  {
-    key: "digital_receipts_enabled",
-    label: "Digital Receipts",
-    description: "Lets customers receive a WhatsApp copy of their receipt after a sale. Printing is unaffected by this switch.",
-  },
-];
+// digital_receipts_enabled (Commercial V1 gate, migration 0039) used to live
+// here as a separate, deliberately non-writable PENDING_MODULE_FLAGS entry:
+// admin_api's BusinessUpdate/ONBOARDER_PATCH_ALLOWED_FIELDS/
+// BusinessAdminResponse/BusinessOnboarderResponse didn't accept or return it
+// (BUG-0072), so a real Switch/tri-state control would have silently no-op'd
+// on save. Fixed in admin_api commit 264aac4 (2026-09-22, verified by
+// reading the current admin_api/app/api/v1/routes_businesses.py -- all four
+// schemas now carry a plain `digital_receipts_enabled: bool`, matching
+// inventory_enabled's exact shape) -- promoted into MODULE_FLAGS above like
+// every other real module flag. PENDING_MODULE_FLAGS itself is removed
+// rather than left as empty scaffolding for a hypothetical future gap; a
+// future gap of this kind should get its own entry when it actually exists.

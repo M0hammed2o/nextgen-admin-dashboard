@@ -114,6 +114,7 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
             current={{
               is_whatsapp_enabled: business.is_whatsapp_enabled,
               inventory_enabled: business.inventory_enabled,
+              digital_receipts_enabled: business.digital_receipts_enabled,
               staff_live_orders_tab_enabled: business.staff_live_orders_tab_enabled,
               staff_wastage_tab_enabled: business.staff_wastage_tab_enabled,
               staff_stocktake_tab_enabled: business.staff_stocktake_tab_enabled,

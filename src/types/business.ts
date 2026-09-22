@@ -38,6 +38,12 @@ export interface Business {
   // Leave/On/Off guess.
   is_whatsapp_enabled: boolean;
   inventory_enabled: boolean;
+  // digital_receipts_enabled (migration 0039) had the same gap the comment
+  // above describes -- admin_api didn't return it until BUG-0072 was fixed
+  // (commit 264aac4, 2026-09-22, verified by reading the current
+  // routes_businesses.py). Now returned by BusinessAdminResponse, so it's a
+  // real ModuleFlagKey, not the write-only tri-state fallback.
+  digital_receipts_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -107,6 +113,7 @@ export interface OnboardingBusiness {
   created_at: string;
   is_whatsapp_enabled: boolean;
   inventory_enabled: boolean;
+  digital_receipts_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -141,6 +148,11 @@ export interface UpdateBusinessRequest {
   // fields yet -- see the note on the Business interface above).
   is_whatsapp_enabled?: boolean;
   inventory_enabled?: boolean;
+  // digital_receipts_enabled (migration 0039): same gap as the comment above
+  // describes, fixed in BusinessUpdate by BUG-0072 (admin_api commit
+  // 264aac4, 2026-09-22, verified by reading the current
+  // routes_businesses.py).
+  digital_receipts_enabled?: boolean;
   staff_live_orders_tab_enabled?: boolean;
   staff_wastage_tab_enabled?: boolean;
   staff_stocktake_tab_enabled?: boolean;
@@ -158,6 +170,7 @@ export type OnboardingBusinessUpdate = Pick<
   | "whatsapp_phone_number_id"
   | "is_whatsapp_enabled"
   | "inventory_enabled"
+  | "digital_receipts_enabled"
   | "staff_live_orders_tab_enabled"
   | "staff_wastage_tab_enabled"
   | "staff_stocktake_tab_enabled"

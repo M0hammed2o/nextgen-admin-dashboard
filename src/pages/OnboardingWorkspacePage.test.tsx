@@ -31,7 +31,7 @@ const BUSINESS: OnboardingBusiness = {
   billing_status: "TRIAL", currency: "ZAR", whatsapp_phone_number_id: null,
   daily_message_limit: 800, daily_llm_call_limit: 400, daily_order_limit: 200,
   last_webhook_received_at: null, created_at: "2026-01-01T00:00:00Z",
-  is_whatsapp_enabled: false, inventory_enabled: false,
+  is_whatsapp_enabled: false, inventory_enabled: false, digital_receipts_enabled: false,
   staff_live_orders_tab_enabled: true, staff_wastage_tab_enabled: true, staff_stocktake_tab_enabled: true,
   onboarded_by_admin_id: "a1", onboarding_completed_at: null,
 };

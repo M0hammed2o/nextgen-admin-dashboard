@@ -62,21 +62,28 @@ describe("ModuleTogglesFieldset dirty-tracking", () => {
     expect(latest).toEqual({});
   });
 
-  // Digital Receipts (BUG-0072): admin_api doesn't accept this field on
-  // PATCH or return it on GET at all, so it must render as a disabled,
-  // non-interactive row -- never a Switch or Leave/On/Off control -- and
-  // must never be capable of entering `changes` (which is exactly what
-  // would happen if it were wired up like a real ModuleFlagKey: a click
-  // that produces a 200 "success" response while silently changing
-  // nothing on the backend).
-  it("renders Digital Receipts as a disabled row with no interactive control, and it never enters `changes`", () => {
+  // Digital Receipts (BUG-0072, now fixed in admin_api commit 264aac4):
+  // digital_receipts_enabled is accepted by BusinessUpdate/
+  // ONBOARDER_PATCH_ALLOWED_FIELDS and returned by BusinessAdminResponse/
+  // BusinessOnboarderResponse now, exactly like inventory_enabled -- so it's
+  // a real ModuleFlagKey and must behave identically to the other flags:
+  // an interactive control (the tri-state Leave/On/Off buttons here, since
+  // this harness passes no `current`), and clicking On/Off must add it to
+  // `changes` like any other flag.
+  it("renders Digital Receipts as a real, interactive control, and clicking On adds it to `changes`", () => {
     let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
     render(<Harness onChangesUpdate={(c) => (latest = c)} />);
 
     const digitalReceiptsRow = screen.getByText("Digital Receipts").closest("div")!.parentElement!;
-    expect(digitalReceiptsRow.querySelectorAll("button")).toHaveLength(0);
-    expect(digitalReceiptsRow.querySelectorAll('[role="switch"]')).toHaveLength(0);
-    expect(screen.getByText("Not available yet")).toBeInTheDocument();
+    const onButton = Array.from(digitalReceiptsRow.querySelectorAll("button")).find((b) => b.textContent === "On")!;
+    expect(onButton).toBeDefined();
+    fireEvent.click(onButton);
+
+    expect(latest).toEqual({ digital_receipts_enabled: true });
+    expect(Object.keys(latest)).toHaveLength(1);
+
+    const leaveButton = Array.from(digitalReceiptsRow.querySelectorAll("button")).find((b) => b.textContent === "Leave")!;
+    fireEvent.click(leaveButton);
     expect(latest).toEqual({});
   });
 });

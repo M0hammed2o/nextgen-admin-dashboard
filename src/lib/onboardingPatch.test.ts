@@ -28,6 +28,7 @@ const BUSINESS: OnboardingBusiness = {
   created_at: "2026-01-01T00:00:00Z",
   is_whatsapp_enabled: true,
   inventory_enabled: false,
+  digital_receipts_enabled: false,
   staff_live_orders_tab_enabled: true,
   staff_wastage_tab_enabled: true,
   staff_stocktake_tab_enabled: true,
@@ -79,7 +80,7 @@ describe("buildOnboardingBasicsPatch", () => {
     );
     const allowed = new Set([
       "name", "timezone", "plan", "whatsapp_phone_number_id",
-      "is_whatsapp_enabled", "inventory_enabled",
+      "is_whatsapp_enabled", "inventory_enabled", "digital_receipts_enabled",
       "staff_live_orders_tab_enabled", "staff_wastage_tab_enabled", "staff_stocktake_tab_enabled",
     ]);
     for (const key of Object.keys(payload)) {
