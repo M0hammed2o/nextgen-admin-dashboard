@@ -29,6 +29,9 @@ const BUSINESS: OnboardingBusiness = {
   is_whatsapp_enabled: true,
   inventory_enabled: false,
   digital_receipts_enabled: false,
+  delivery_platforms_enabled: false,
+  uber_eats_enabled: false,
+  mrd_enabled: false,
   staff_live_orders_tab_enabled: true,
   staff_wastage_tab_enabled: true,
   staff_stocktake_tab_enabled: true,
@@ -86,5 +89,23 @@ describe("buildOnboardingBasicsPatch", () => {
     for (const key of Object.keys(payload)) {
       expect(allowed.has(key)).toBe(true);
     }
+  });
+
+  // Delivery entitlements (delivery_platforms_enabled/uber_eats_enabled/
+  // mrd_enabled, migration 0044) are SUPER_ADMIN-writable only -- absent from
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Even if moduleChanges somehow
+  // contained one (it shouldn't -- ModuleTogglesFieldset never emits it for
+  // a non-SUPER_ADMIN caller), this function must still never forward it.
+  it("never forwards a delivery-entitlement key even if present in moduleChanges", () => {
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
+      inventory_enabled: true,
+      delivery_platforms_enabled: true,
+      uber_eats_enabled: true,
+      mrd_enabled: true,
+    });
+    expect(payload).toEqual({ inventory_enabled: true });
+    expect(payload).not.toHaveProperty("delivery_platforms_enabled");
+    expect(payload).not.toHaveProperty("uber_eats_enabled");
+    expect(payload).not.toHaveProperty("mrd_enabled");
   });
 });

@@ -44,6 +44,16 @@ export interface Business {
   // routes_businesses.py). Now returned by BusinessAdminResponse, so it's a
   // real ModuleFlagKey, not the write-only tri-state fallback.
   digital_receipts_enabled: boolean;
+  // Delivery marketplace entitlements (migration 0044, admin_api commits
+  // ca95867/82e0143) -- SUPER_ADMIN-writable only (see UpdateBusinessRequest
+  // below and lib/modules.ts's ModuleFlagDef.superAdminOnly), but read here
+  // for every viewer of this full Business shape. A true value is
+  // commercial permission only -- it does NOT mean Uber/Mr D has approved
+  // or connected this restaurant; see the Manager Dashboard's delivery
+  // connection status for the real live/sandbox/awaiting-approval state.
+  delivery_platforms_enabled: boolean;
+  uber_eats_enabled: boolean;
+  mrd_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -114,6 +124,15 @@ export interface OnboardingBusiness {
   is_whatsapp_enabled: boolean;
   inventory_enabled: boolean;
   digital_receipts_enabled: boolean;
+  // Read-only here (BusinessOnboarderResponse returns these, but they're
+  // deliberately absent from OnboardingBusinessUpdate below/
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side) -- an onboarder setting up a
+  // restaurant that wants delivery integrations still needs to see current
+  // entitlement status to know whether to escalate to a SUPER_ADMIN. See
+  // OnboardingWorkspacePage's read-only "Delivery entitlements" panel.
+  delivery_platforms_enabled: boolean;
+  uber_eats_enabled: boolean;
+  mrd_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -153,6 +172,16 @@ export interface UpdateBusinessRequest {
   // 264aac4, 2026-09-22, verified by reading the current
   // routes_businesses.py).
   digital_receipts_enabled?: boolean;
+  // Delivery marketplace entitlements (migration 0044) -- deliberately NOT
+  // added to OnboardingBusinessUpdate/ONBOARDER_PATCH_ALLOWED_FIELDS below:
+  // enabling a live delivery integration carries real contractual weight
+  // with Uber that a sales partner shouldn't be able to flip unilaterally
+  // (see docs/DELIVERY_PLATFORM_ARCHITECTURE.md §7). Only reachable via
+  // EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-gated routes), which
+  // pass ModuleTogglesFieldset's isSuperAdmin prop explicitly.
+  delivery_platforms_enabled?: boolean;
+  uber_eats_enabled?: boolean;
+  mrd_enabled?: boolean;
   staff_live_orders_tab_enabled?: boolean;
   staff_wastage_tab_enabled?: boolean;
   staff_stocktake_tab_enabled?: boolean;
@@ -162,6 +191,14 @@ export interface UpdateBusinessRequest {
 // in admin_api/app/api/v1/routes_businesses.py) -- anything else 403s with
 // FIELD_NOT_ALLOWED. Used by OnboardingWorkspacePage's inline edit so it's
 // structurally impossible to build a payload with a forbidden field.
+// Deliberately does NOT include delivery_platforms_enabled/uber_eats_enabled/
+// mrd_enabled -- those stay SUPER_ADMIN-only (see UpdateBusinessRequest
+// above), and OnboardingWorkspacePage/CreateOnboardingBusinessModal never
+// let ANY role toggle them from here (both are reachable by ONBOARDER, and
+// the reduced onboarding-workspace edit surface is deliberately narrower
+// than full BusinessUpdate for both roles already -- e.g. Suspend/Limits/
+// OrderPack are also only editable from the fuller /businesses page). A real
+// SUPER_ADMIN who wants to set these uses that fuller page instead.
 export type OnboardingBusinessUpdate = Pick<
   UpdateBusinessRequest,
   | "name"
