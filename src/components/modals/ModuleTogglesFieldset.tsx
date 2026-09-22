@@ -15,6 +15,22 @@ interface Props {
    * the business exists at all).
    */
   current?: Partial<Record<ModuleFlagKey, boolean>>;
+  /**
+   * Defaults to false (safe-by-default/default-deny): a flag with
+   * `superAdminOnly: true` (delivery_platforms_enabled/uber_eats_enabled/
+   * mrd_enabled today) is rendered as a locked, read-only row -- current
+   * state shown if known, no Switch/tri-state control, `onChange` never
+   * called for it -- unless the caller explicitly passes `isSuperAdmin`.
+   * Only pass this from a call site that is ITSELF gated to SUPER_ADMIN
+   * (e.g. EditBusinessModal/CreateBusinessModal, reachable only via
+   * `/businesses` and `/businesses/:id`, both RoleRoute-gated to
+   * SUPER_ADMIN in App.tsx). Call sites reachable by BOTH roles
+   * (CreateOnboardingBusinessModal, OnboardingWorkspacePage) deliberately
+   * never pass this -- see those files' own comments for why even a real
+   * SUPER_ADMIN edits delivery entitlements from the fuller Businesses page
+   * instead, not from the reduced onboarding workspace.
+   */
+  isSuperAdmin?: boolean;
 }
 
 /**
@@ -30,8 +46,9 @@ interface Props {
  * module this UI can't see is already enabled, so "Leave" is the only safe
  * default in that case.
  */
-export function ModuleTogglesFieldset({ changes, onChange, current }: Props) {
-  const anyUnknown = MODULE_FLAGS.some((f) => current?.[f.key] === undefined);
+export function ModuleTogglesFieldset({ changes, onChange, current, isSuperAdmin = false }: Props) {
+  const editableFlags = MODULE_FLAGS.filter((f) => !f.superAdminOnly || isSuperAdmin);
+  const anyUnknown = editableFlags.some((f) => current?.[f.key] === undefined);
 
   return (
     <div className="space-y-1">
@@ -43,6 +60,32 @@ export function ModuleTogglesFieldset({ changes, onChange, current }: Props) {
         </p>
       )}
       {MODULE_FLAGS.map((flag) => {
+        // Locked row: current state (if known) shown for information only --
+        // no Switch/tri-state control, onChange never called. See Props.isSuperAdmin.
+        if (flag.superAdminOnly && !isSuperAdmin) {
+          const known = current?.[flag.key];
+          return (
+            <div key={flag.key} className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0 opacity-90">
+              <div>
+                <p className="text-sm font-medium">{flag.label}</p>
+                <p className="text-xs text-muted-foreground">{flag.description}</p>
+                <p className="text-xs text-warning mt-0.5">Only a NextGen super admin can change this.</p>
+              </div>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                  known === undefined
+                    ? "bg-muted text-muted-foreground"
+                    : known
+                      ? "bg-success/10 text-success"
+                      : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {known === undefined ? "Unknown" : known ? "On" : "Off"}
+              </span>
+            </div>
+          );
+        }
+
         const known = current?.[flag.key];
         if (known !== undefined) {
           const value = changes[flag.key] ?? known;

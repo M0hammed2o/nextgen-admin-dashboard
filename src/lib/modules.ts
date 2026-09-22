@@ -16,6 +16,9 @@ export type ModuleFlagKey =
   | "is_whatsapp_enabled"
   | "inventory_enabled"
   | "digital_receipts_enabled"
+  | "delivery_platforms_enabled"
+  | "uber_eats_enabled"
+  | "mrd_enabled"
   | "staff_live_orders_tab_enabled"
   | "staff_wastage_tab_enabled"
   | "staff_stocktake_tab_enabled";
@@ -24,6 +27,17 @@ export interface ModuleFlagDef {
   key: ModuleFlagKey;
   label: string;
   description: string;
+  /**
+   * delivery_platforms_enabled/uber_eats_enabled/mrd_enabled (migration 0044)
+   * are deliberately NOT in admin_api's ONBOARDER_PATCH_ALLOWED_FIELDS --
+   * enabling a live delivery integration carries real contractual weight
+   * with Uber that a sales partner shouldn't be able to flip unilaterally
+   * (see docs/DELIVERY_PLATFORM_ARCHITECTURE.md §7). ModuleTogglesFieldset
+   * renders a flag with this set to true as a locked, read-only row unless
+   * its caller explicitly passes isSuperAdmin -- see that component's own
+   * doc comment for exactly which call sites opt in.
+   */
+  superAdminOnly?: boolean;
 }
 
 export const MODULE_FLAGS: ModuleFlagDef[] = [
@@ -41,6 +55,24 @@ export const MODULE_FLAGS: ModuleFlagDef[] = [
     key: "digital_receipts_enabled",
     label: "Digital Receipts",
     description: "Lets customers receive a WhatsApp copy of their receipt after a sale. Printing is unaffected by this switch.",
+  },
+  {
+    key: "delivery_platforms_enabled",
+    label: "Delivery Marketplace",
+    description: "Commercial entitlement only -- lets this restaurant use delivery-platform integrations (Uber Eats, Mr D) at all. Does NOT mean any provider has approved or connected the restaurant yet -- see the per-provider flags below and the connection status shown in the Manager Dashboard.",
+    superAdminOnly: true,
+  },
+  {
+    key: "uber_eats_enabled",
+    label: "Uber Eats",
+    description: "Commercial entitlement only. Live Uber Eats order injection additionally requires Uber's own written partner approval for this specific restaurant -- this flag alone never turns on live orders. Until Uber approves, the restaurant's connection stays SANDBOX or AWAITING_APPROVAL; the existing CSV import remains the live Uber Eats reconciliation path.",
+    superAdminOnly: true,
+  },
+  {
+    key: "mrd_enabled",
+    label: "Mr D",
+    description: "Commercial entitlement only. No live Mr D order-injection API exists today -- Mr D stays CSV file reconciliation regardless of this flag. Never implies a live Mr D connection.",
+    superAdminOnly: true,
   },
   {
     key: "staff_live_orders_tab_enabled",

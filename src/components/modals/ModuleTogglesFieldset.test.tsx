@@ -87,3 +87,62 @@ describe("ModuleTogglesFieldset dirty-tracking", () => {
     expect(latest).toEqual({});
   });
 });
+
+// Delivery entitlements (delivery_platforms_enabled/uber_eats_enabled/
+// mrd_enabled, migration 0044) are SUPER_ADMIN-writable only (excluded from
+// ONBOARDER_PATCH_ALLOWED_FIELDS server-side) -- an ONBOARDER-reachable call
+// site sending one of these would get a whole-request 403. These tests are
+// the "an ONBOARDER never sees an editable control that would 403" honesty
+// guarantee for the admin suite.
+describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
+  const DELIVERY_FLAGS = ["delivery_platforms_enabled", "uber_eats_enabled", "mrd_enabled"] as const;
+
+  it("defaults to locked (isSuperAdmin unset): no Switch/tri-state control for delivery flags, and clicking never fires onChange for them", () => {
+    let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
+    render(<Harness onChangesUpdate={(c) => (latest = c)} />);
+
+    for (const key of DELIVERY_FLAGS) {
+      const label = MODULE_FLAGS.find((f) => f.key === key)!.label;
+      const row = screen.getByText(label).closest("div")!.parentElement!;
+      // No Switch, no Leave/On/Off buttons -- just a locked info row.
+      expect(row.querySelectorAll("button")).toHaveLength(0);
+      expect(row.querySelector('[role="switch"]')).toBeNull();
+      expect(screen.getAllByText("Only a NextGen super admin can change this.").length).toBeGreaterThan(0);
+    }
+    expect(latest).toEqual({});
+  });
+
+  it("shows the flag's real current state as a read-only badge when locked, never lets it be toggled", () => {
+    render(
+      <ModuleTogglesFieldset
+        changes={{}}
+        onChange={() => {
+          throw new Error("onChange must never be called for a locked SUPER_ADMIN-only flag");
+        }}
+        current={{ uber_eats_enabled: true, mrd_enabled: false }}
+      />
+    );
+    const uberRow = screen.getByText("Uber Eats").closest("div")!.parentElement!;
+    expect(uberRow.textContent).toContain("On");
+    const mrdRow = screen.getByText("Mr D").closest("div")!.parentElement!;
+    expect(mrdRow.textContent).toContain("Off");
+  });
+
+  it("isSuperAdmin=true renders delivery flags as real interactive controls, same as any other flag", () => {
+    let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
+    render(
+      <ModuleTogglesFieldset
+        changes={{}}
+        onChange={(key, value) => {
+          latest = { ...latest, ...(value === undefined ? {} : { [key]: value }) };
+        }}
+        isSuperAdmin
+      />
+    );
+    const uberRow = screen.getByText("Uber Eats").closest("div")!.parentElement!;
+    const onButton = Array.from(uberRow.querySelectorAll("button")).find((b) => b.textContent === "On")!;
+    expect(onButton).toBeDefined();
+    fireEvent.click(onButton);
+    expect(latest).toEqual({ uber_eats_enabled: true });
+  });
+});
