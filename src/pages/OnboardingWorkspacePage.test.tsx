@@ -32,6 +32,7 @@ const BUSINESS: OnboardingBusiness = {
   daily_message_limit: 800, daily_llm_call_limit: 400, daily_order_limit: 200,
   last_webhook_received_at: null, created_at: "2026-01-01T00:00:00Z",
   is_whatsapp_enabled: false, inventory_enabled: false, digital_receipts_enabled: false,
+  delivery_platforms_enabled: true, uber_eats_enabled: false, mrd_enabled: false,
   staff_live_orders_tab_enabled: true, staff_wastage_tab_enabled: true, staff_stocktake_tab_enabled: true,
   onboarded_by_admin_id: "a1", onboarding_completed_at: null,
 };
@@ -133,5 +134,26 @@ describe("OnboardingWorkspacePage go-live checklist + handover gating", () => {
       expect(businessesApi.completeOnboarding).toHaveBeenCalledWith("biz-1", { force: false })
     );
     await waitFor(() => expect(screen.getByText("Onboarding List")).toBeInTheDocument());
+  });
+
+  // Delivery entitlements (delivery_platforms_enabled/uber_eats_enabled/
+  // mrd_enabled) are SUPER_ADMIN-writable only -- this workspace (reachable
+  // by ONBOARDER per the mocked useAuth above) must show them read-only via
+  // ModuleTogglesFieldset's locked-row rendering, never as an editable
+  // control that would 403 on save.
+  it("shows delivery entitlements read-only, with no editable control, for an ONBOARDER", async () => {
+    vi.mocked(businessesApi.getOnboardingStatus).mockResolvedValue(makeStatus({}));
+    renderPage();
+
+    await screen.findByText("Delivery Marketplace");
+    // BUSINESS fixture has delivery_platforms_enabled: true, the other two false.
+    const marketplaceRow = screen.getByText("Delivery Marketplace").closest("div")!.parentElement!;
+    expect(marketplaceRow.textContent).toContain("On");
+    const uberRow = screen.getByText("Uber Eats").closest("div")!.parentElement!;
+    expect(uberRow.textContent).toContain("Off");
+
+    expect(screen.getAllByText("Only a NextGen super admin can change this.").length).toBeGreaterThan(0);
+    // No Switch/On/Off/Leave controls for the locked delivery rows.
+    expect(marketplaceRow.querySelectorAll("button")).toHaveLength(0);
   });
 });

@@ -243,7 +243,9 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
 
           <hr className="border-border" />
           <p className="text-sm font-medium">Modules</p>
-          <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
+          {/* Safe to opt in here: this modal is only reachable via /businesses,
+              RoleRoute-gated to SUPER_ADMIN in App.tsx. */}
+          <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} isSuperAdmin />
 
           <hr className="border-border" />
           <label className="flex items-center gap-2 text-sm">

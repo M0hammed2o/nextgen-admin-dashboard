@@ -284,10 +284,20 @@ export default function OnboardingWorkspacePage() {
         <ModuleTogglesFieldset
           changes={moduleChanges}
           onChange={setModuleFlag}
+          // isSuperAdmin deliberately NOT passed -- reachable by BOTH roles,
+          // and delivery_platforms_enabled/uber_eats_enabled/mrd_enabled stay
+          // locked/read-only here for either role (see OnboardingBusinessUpdate's
+          // comment in types/business.ts for why -- a real SUPER_ADMIN edits
+          // these from the fuller Businesses page instead). Their real current
+          // value is still passed below so the locked row shows an accurate
+          // On/Off badge rather than "Unknown".
           current={{
             is_whatsapp_enabled: business.is_whatsapp_enabled,
             inventory_enabled: business.inventory_enabled,
             digital_receipts_enabled: business.digital_receipts_enabled,
+            delivery_platforms_enabled: business.delivery_platforms_enabled,
+            uber_eats_enabled: business.uber_eats_enabled,
+            mrd_enabled: business.mrd_enabled,
             staff_live_orders_tab_enabled: business.staff_live_orders_tab_enabled,
             staff_wastage_tab_enabled: business.staff_wastage_tab_enabled,
             staff_stocktake_tab_enabled: business.staff_stocktake_tab_enabled,

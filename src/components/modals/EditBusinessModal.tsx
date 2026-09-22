@@ -111,10 +111,17 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
           <ModuleTogglesFieldset
             changes={moduleChanges}
             onChange={setModuleFlag}
+            // Safe to opt in here: this modal is only reachable via
+            // /businesses and /businesses/:id, both RoleRoute-gated to
+            // SUPER_ADMIN in App.tsx.
+            isSuperAdmin
             current={{
               is_whatsapp_enabled: business.is_whatsapp_enabled,
               inventory_enabled: business.inventory_enabled,
               digital_receipts_enabled: business.digital_receipts_enabled,
+              delivery_platforms_enabled: business.delivery_platforms_enabled,
+              uber_eats_enabled: business.uber_eats_enabled,
+              mrd_enabled: business.mrd_enabled,
               staff_live_orders_tab_enabled: business.staff_live_orders_tab_enabled,
               staff_wastage_tab_enabled: business.staff_wastage_tab_enabled,
               staff_stocktake_tab_enabled: business.staff_stocktake_tab_enabled,

@@ -234,6 +234,11 @@ export default function BusinessDetailsPage() {
               <Edit className="w-3 h-3" /> Edit
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground mb-2">
+            Delivery Marketplace / Uber Eats / Mr D above are commercial entitlements only -- "On" means this
+            restaurant is permitted to use the integration, not that the provider has approved or connected it.
+            See the Manager Dashboard's Delivery Platforms page for the real connection status.
+          </p>
           <div className="divide-y divide-border">
             {MODULE_FLAGS.map((f) => {
               const on = business[f.key];

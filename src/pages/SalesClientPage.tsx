@@ -220,6 +220,12 @@ export default function SalesClientPage() {
                 : "Module configuration isn't available right now."}
             </p>
           )}
+          {configDetails && (
+            <p className="text-xs text-muted-foreground">
+              Delivery Marketplace / Uber Eats / Mr D are commercial entitlements only — "Enabled" does not mean
+              the provider has approved or connected this restaurant.
+            </p>
+          )}
         </div>
 
         {/* Trial */}

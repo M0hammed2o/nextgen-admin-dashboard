@@ -160,6 +160,12 @@ export function CreateOnboardingBusinessModal({ open, onClose, onSuccess }: Prop
 
           <hr className="border-border" />
           <p className="text-sm font-medium">Modules</p>
+          {/* isSuperAdmin deliberately NOT passed -- this modal is reachable
+              by BOTH roles, and delivery entitlements (delivery_platforms_enabled/
+              uber_eats_enabled/mrd_enabled) stay locked/read-only here
+              regardless of the actual caller's role; a SUPER_ADMIN sets them
+              from the fuller Businesses page after creation instead. See
+              ModuleTogglesFieldset's isSuperAdmin doc comment. */}
           <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
 
           <hr className="border-border" />
