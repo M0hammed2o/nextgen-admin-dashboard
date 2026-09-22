@@ -7,7 +7,8 @@ import { formatCentsAsRands } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Users2 } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 const STATUS_FILTERS: { value: AccountStatusValue | ""; label: string }[] = [
   { value: "", label: "All" },
@@ -80,9 +81,11 @@ export default function SalesClientsPage() {
             <Button variant="outline" size="sm" onClick={fetchClients}>Retry</Button>
           </div>
         ) : clients.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            {status ? `No clients with status "${status}".` : "No clients yet. Start onboarding a restaurant to see it here."}
-          </div>
+          <EmptyState
+            icon={Users2}
+            title={status ? `No clients with status "${status}".` : "No clients yet."}
+            description={status ? undefined : "Start onboarding a restaurant to see it here."}
+          />
         ) : (
           <div className="divide-y divide-border">
             {clients.map((c) => (
