@@ -26,10 +26,11 @@ export interface OnboardingBasicsForm {
 // accepts, for module flags. Explicit key-by-key copy below (not a raw
 // `{ ...moduleChanges }` spread) is what keeps "never produces a key outside
 // the ONBOARDER PATCH allow-list" true now that ModuleFlagKey (lib/modules.ts)
-// also carries the three SUPER_ADMIN-only delivery entitlement keys
-// (delivery_platforms_enabled/uber_eats_enabled/mrd_enabled) -- those are
-// deliberately absent from this list and from OnboardingBusinessUpdate's
-// type; see that type's own comment for why.
+// also carries the four SUPER_ADMIN-only entitlement keys
+// (delivery_platforms_enabled/uber_eats_enabled/mrd_enabled/
+// advanced_analytics_enabled) -- those are deliberately absent from this
+// list and from OnboardingBusinessUpdate's type; see that type's own
+// comment for why.
 const ONBOARDER_MODULE_KEYS = [
   "is_whatsapp_enabled",
   "inventory_enabled",

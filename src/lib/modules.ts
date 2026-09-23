@@ -19,6 +19,7 @@ export type ModuleFlagKey =
   | "delivery_platforms_enabled"
   | "uber_eats_enabled"
   | "mrd_enabled"
+  | "advanced_analytics_enabled"
   | "staff_live_orders_tab_enabled"
   | "staff_wastage_tab_enabled"
   | "staff_stocktake_tab_enabled";
@@ -72,6 +73,12 @@ export const MODULE_FLAGS: ModuleFlagDef[] = [
     key: "mrd_enabled",
     label: "Mr D",
     description: "Commercial entitlement only. No live Mr D order-injection API exists today -- Mr D stays CSV file reconciliation regardless of this flag. Never implies a live Mr D connection.",
+    superAdminOnly: true,
+  },
+  {
+    key: "advanced_analytics_enabled",
+    label: "Advanced Analytics",
+    description: "Commercial entitlement only -- unlocks the NextGen Complete tier's Advanced Analytics views (average order value, payment-method split, delivery-channel performance) in the Manager Dashboard.",
     superAdminOnly: true,
   },
   {

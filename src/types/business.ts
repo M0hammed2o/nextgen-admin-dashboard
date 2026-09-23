@@ -54,6 +54,14 @@ export interface Business {
   delivery_platforms_enabled: boolean;
   uber_eats_enabled: boolean;
   mrd_enabled: boolean;
+  // Advanced Analytics entitlement (migration 0047, admin_api schemas verified
+  // 2026-09-23) -- Commercial V1 tier gate (NextGen Complete and above) for
+  // the average-order-value/payment-method-split/delivery-channel-performance
+  // views. SUPER_ADMIN-writable only (see UpdateBusinessRequest below and
+  // lib/modules.ts's ModuleFlagDef.superAdminOnly), same "platform decision,
+  // not a tenant toggle" rationale as delivery_platforms_enabled above, but
+  // read here for every viewer of this full Business shape.
+  advanced_analytics_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -133,6 +141,11 @@ export interface OnboardingBusiness {
   delivery_platforms_enabled: boolean;
   uber_eats_enabled: boolean;
   mrd_enabled: boolean;
+  // Read-only here too, same rationale as delivery_platforms_enabled above
+  // (visible so an onboarder knows to escalate, not onboarder-actionable --
+  // deliberately absent from OnboardingBusinessUpdate below/
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side).
+  advanced_analytics_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -182,6 +195,15 @@ export interface UpdateBusinessRequest {
   delivery_platforms_enabled?: boolean;
   uber_eats_enabled?: boolean;
   mrd_enabled?: boolean;
+  // Advanced Analytics entitlement (migration 0047) -- Commercial V1 tier
+  // gate (NextGen Complete and above), same "platform decision, not a
+  // tenant toggle" rationale as the delivery entitlements above --
+  // deliberately NOT added to OnboardingBusinessUpdate/
+  // ONBOARDER_PATCH_ALLOWED_FIELDS below: a sales partner should not be able
+  // to unilaterally unlock a paid tier's analytics for a POS-only deal. Only
+  // reachable via EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-gated
+  // routes), which pass ModuleTogglesFieldset's isSuperAdmin prop explicitly.
+  advanced_analytics_enabled?: boolean;
   staff_live_orders_tab_enabled?: boolean;
   staff_wastage_tab_enabled?: boolean;
   staff_stocktake_tab_enabled?: boolean;
@@ -192,8 +214,9 @@ export interface UpdateBusinessRequest {
 // FIELD_NOT_ALLOWED. Used by OnboardingWorkspacePage's inline edit so it's
 // structurally impossible to build a payload with a forbidden field.
 // Deliberately does NOT include delivery_platforms_enabled/uber_eats_enabled/
-// mrd_enabled -- those stay SUPER_ADMIN-only (see UpdateBusinessRequest
-// above), and OnboardingWorkspacePage/CreateOnboardingBusinessModal never
+// mrd_enabled/advanced_analytics_enabled -- those stay SUPER_ADMIN-only (see
+// UpdateBusinessRequest above), and OnboardingWorkspacePage/
+// CreateOnboardingBusinessModal never
 // let ANY role toggle them from here (both are reachable by ONBOARDER, and
 // the reduced onboarding-workspace edit surface is deliberately narrower
 // than full BusinessUpdate for both roles already -- e.g. Suspend/Limits/
