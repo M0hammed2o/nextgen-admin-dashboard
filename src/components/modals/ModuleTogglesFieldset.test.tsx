@@ -185,4 +185,55 @@ describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
     fireEvent.click(onButton);
     expect(latest).toEqual({ advanced_analytics_enabled: true });
   });
+
+  // Loyalty (loyalty_enabled, migration 0051, KNOWN_BUGS.md BUG-0107) follows
+  // the exact same SUPER_ADMIN-only pattern as Advanced Analytics/delivery
+  // entitlements above -- an ONBOARDER must see its current value read-only
+  // (never an editable control that would 403 against
+  // ONBOARDER_PATCH_ALLOWED_FIELDS). This is the "ONBOARDER cannot submit
+  // loyalty_enabled" guarantee for the admin suite.
+  it("shows Loyalty's real current state as a read-only badge when locked, never lets it be toggled", () => {
+    render(
+      <ModuleTogglesFieldset
+        changes={{}}
+        onChange={() => {
+          throw new Error("onChange must never be called for a locked SUPER_ADMIN-only flag");
+        }}
+        current={{ loyalty_enabled: true }}
+      />
+    );
+    const row = screen.getByText("Loyalty").closest("div")!.parentElement!;
+    expect(row.querySelectorAll("button")).toHaveLength(0);
+    expect(row.querySelector('[role="switch"]')).toBeNull();
+    expect(row.textContent).toContain("On");
+    expect(screen.getAllByText("Only a NextGen super admin can change this.").length).toBeGreaterThan(0);
+  });
+
+  it("defaults to locked (isSuperAdmin unset): no control for Loyalty, and clicking never fires onChange for it", () => {
+    let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
+    render(<Harness onChangesUpdate={(c) => (latest = c)} />);
+
+    const row = screen.getByText("Loyalty").closest("div")!.parentElement!;
+    expect(row.querySelectorAll("button")).toHaveLength(0);
+    expect(row.querySelector('[role="switch"]')).toBeNull();
+    expect(latest).toEqual({});
+  });
+
+  it("isSuperAdmin=true renders Loyalty as a real interactive control, same as any other flag", () => {
+    let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
+    render(
+      <ModuleTogglesFieldset
+        changes={{}}
+        onChange={(key, value) => {
+          latest = { ...latest, ...(value === undefined ? {} : { [key]: value }) };
+        }}
+        isSuperAdmin
+      />
+    );
+    const row = screen.getByText("Loyalty").closest("div")!.parentElement!;
+    const onButton = Array.from(row.querySelectorAll("button")).find((b) => b.textContent === "On")!;
+    expect(onButton).toBeDefined();
+    fireEvent.click(onButton);
+    expect(latest).toEqual({ loyalty_enabled: true });
+  });
 });

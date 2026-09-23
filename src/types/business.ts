@@ -62,6 +62,13 @@ export interface Business {
   // not a tenant toggle" rationale as delivery_platforms_enabled above, but
   // read here for every viewer of this full Business shape.
   advanced_analytics_enabled: boolean;
+  // Loyalty entitlement (migration 0051, KNOWN_BUGS.md BUG-0107) -- Commercial
+  // V1 tier gate (NextGen Complete and above), same "platform decision, not a
+  // tenant toggle" rationale as advanced_analytics_enabled above.
+  // SUPER_ADMIN-writable only (see UpdateBusinessRequest below and
+  // lib/modules.ts's ModuleFlagDef.superAdminOnly), but read here for every
+  // viewer of this full Business shape.
+  loyalty_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -146,6 +153,11 @@ export interface OnboardingBusiness {
   // deliberately absent from OnboardingBusinessUpdate below/
   // ONBOARDER_PATCH_ALLOWED_FIELDS server-side).
   advanced_analytics_enabled: boolean;
+  // Read-only here too, same rationale as advanced_analytics_enabled above
+  // (visible so an onboarder knows to escalate, not onboarder-actionable --
+  // deliberately absent from OnboardingBusinessUpdate below/
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side). See KNOWN_BUGS.md BUG-0107.
+  loyalty_enabled: boolean;
   staff_live_orders_tab_enabled: boolean;
   staff_wastage_tab_enabled: boolean;
   staff_stocktake_tab_enabled: boolean;
@@ -204,6 +216,16 @@ export interface UpdateBusinessRequest {
   // reachable via EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-gated
   // routes), which pass ModuleTogglesFieldset's isSuperAdmin prop explicitly.
   advanced_analytics_enabled?: boolean;
+  // Loyalty entitlement (migration 0051, KNOWN_BUGS.md BUG-0107) -- Commercial
+  // V1 tier gate (NextGen Complete and above), same "platform decision, not a
+  // tenant toggle" rationale as the delivery/analytics entitlements above --
+  // deliberately NOT added to OnboardingBusinessUpdate/
+  // ONBOARDER_PATCH_ALLOWED_FIELDS below: a sales partner should not be able
+  // to unilaterally unlock a paid tier's Loyalty module for a POS-only deal.
+  // Only reachable via EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-
+  // gated routes), which pass ModuleTogglesFieldset's isSuperAdmin prop
+  // explicitly.
+  loyalty_enabled?: boolean;
   staff_live_orders_tab_enabled?: boolean;
   staff_wastage_tab_enabled?: boolean;
   staff_stocktake_tab_enabled?: boolean;
@@ -214,8 +236,8 @@ export interface UpdateBusinessRequest {
 // FIELD_NOT_ALLOWED. Used by OnboardingWorkspacePage's inline edit so it's
 // structurally impossible to build a payload with a forbidden field.
 // Deliberately does NOT include delivery_platforms_enabled/uber_eats_enabled/
-// mrd_enabled/advanced_analytics_enabled -- those stay SUPER_ADMIN-only (see
-// UpdateBusinessRequest above), and OnboardingWorkspacePage/
+// mrd_enabled/advanced_analytics_enabled/loyalty_enabled -- those stay
+// SUPER_ADMIN-only (see UpdateBusinessRequest above), and OnboardingWorkspacePage/
 // CreateOnboardingBusinessModal never
 // let ANY role toggle them from here (both are reachable by ONBOARDER, and
 // the reduced onboarding-workspace edit surface is deliberately narrower

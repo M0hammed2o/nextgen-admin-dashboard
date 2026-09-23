@@ -20,6 +20,7 @@ export type ModuleFlagKey =
   | "uber_eats_enabled"
   | "mrd_enabled"
   | "advanced_analytics_enabled"
+  | "loyalty_enabled"
   | "staff_live_orders_tab_enabled"
   | "staff_wastage_tab_enabled"
   | "staff_stocktake_tab_enabled";
@@ -79,6 +80,12 @@ export const MODULE_FLAGS: ModuleFlagDef[] = [
     key: "advanced_analytics_enabled",
     label: "Advanced Analytics",
     description: "Commercial entitlement only -- unlocks the NextGen Complete tier's Advanced Analytics views (average order value, payment-method split, delivery-channel performance) in the Manager Dashboard.",
+    superAdminOnly: true,
+  },
+  {
+    key: "loyalty_enabled",
+    label: "Loyalty",
+    description: "Commercial entitlement only -- unlocks the Loyalty module (points programme + till reward redemption) sold in NextGen Complete (from R2,499) and above. A POS-only plan cannot self-enable this.",
     superAdminOnly: true,
   },
   {

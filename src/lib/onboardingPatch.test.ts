@@ -33,6 +33,7 @@ const BUSINESS: OnboardingBusiness = {
   uber_eats_enabled: false,
   mrd_enabled: false,
   advanced_analytics_enabled: false,
+  loyalty_enabled: false,
   staff_live_orders_tab_enabled: true,
   staff_wastage_tab_enabled: true,
   staff_stocktake_tab_enabled: true,
@@ -125,5 +126,39 @@ describe("buildOnboardingBasicsPatch", () => {
     });
     expect(payload).toEqual({ inventory_enabled: true });
     expect(payload).not.toHaveProperty("advanced_analytics_enabled");
+  });
+
+  // Loyalty (loyalty_enabled, migration 0051, KNOWN_BUGS.md BUG-0107) is a
+  // Commercial V1 tier-gate entitlement, SUPER_ADMIN-writable only -- same
+  // "platform decision, not a tenant toggle" rationale as the delivery/
+  // analytics entitlements above, and equally absent from
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Even if moduleChanges somehow
+  // contained it (it shouldn't -- ModuleTogglesFieldset never emits it for a
+  // non-SUPER_ADMIN caller), this function must still never forward it, so an
+  // ONBOARDER can never unlock the paid Loyalty module via this path.
+  it("never forwards loyalty_enabled even if present in moduleChanges", () => {
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
+      inventory_enabled: true,
+      loyalty_enabled: true,
+    });
+    expect(payload).toEqual({ inventory_enabled: true });
+    expect(payload).not.toHaveProperty("loyalty_enabled");
+  });
+
+  it("never produces loyalty_enabled outside the ONBOARDER PATCH allow-list (full field sweep)", () => {
+    const payload = buildOnboardingBasicsPatch(
+      { name: "New Name", timezone: "UTC", plan: "GROWTH", whatsapp_phone_number_id: "999" },
+      BUSINESS,
+      { inventory_enabled: true, is_whatsapp_enabled: false, loyalty_enabled: true }
+    );
+    const allowed = new Set([
+      "name", "timezone", "plan", "whatsapp_phone_number_id",
+      "is_whatsapp_enabled", "inventory_enabled", "digital_receipts_enabled",
+      "staff_live_orders_tab_enabled", "staff_wastage_tab_enabled", "staff_stocktake_tab_enabled",
+    ]);
+    for (const key of Object.keys(payload)) {
+      expect(allowed.has(key)).toBe(true);
+    }
+    expect(payload).not.toHaveProperty("loyalty_enabled");
   });
 });

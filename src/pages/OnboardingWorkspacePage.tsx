@@ -299,6 +299,7 @@ export default function OnboardingWorkspacePage() {
             uber_eats_enabled: business.uber_eats_enabled,
             mrd_enabled: business.mrd_enabled,
             advanced_analytics_enabled: business.advanced_analytics_enabled,
+            loyalty_enabled: business.loyalty_enabled,
             staff_live_orders_tab_enabled: business.staff_live_orders_tab_enabled,
             staff_wastage_tab_enabled: business.staff_wastage_tab_enabled,
             staff_stocktake_tab_enabled: business.staff_stocktake_tab_enabled,
