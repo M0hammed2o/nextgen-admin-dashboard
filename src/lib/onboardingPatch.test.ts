@@ -32,6 +32,7 @@ const BUSINESS: OnboardingBusiness = {
   delivery_platforms_enabled: false,
   uber_eats_enabled: false,
   mrd_enabled: false,
+  advanced_analytics_enabled: false,
   staff_live_orders_tab_enabled: true,
   staff_wastage_tab_enabled: true,
   staff_stocktake_tab_enabled: true,
@@ -107,5 +108,22 @@ describe("buildOnboardingBasicsPatch", () => {
     expect(payload).not.toHaveProperty("delivery_platforms_enabled");
     expect(payload).not.toHaveProperty("uber_eats_enabled");
     expect(payload).not.toHaveProperty("mrd_enabled");
+  });
+
+  // Advanced Analytics (advanced_analytics_enabled, migration 0047) is a
+  // Commercial V1 tier-gate entitlement, SUPER_ADMIN-writable only -- same
+  // "platform decision, not a tenant toggle" rationale as the delivery
+  // entitlements above, and equally absent from
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Even if moduleChanges somehow
+  // contained it (it shouldn't -- ModuleTogglesFieldset never emits it for a
+  // non-SUPER_ADMIN caller), this function must still never forward it, so an
+  // ONBOARDER can never unlock a paid analytics tier via this path.
+  it("never forwards advanced_analytics_enabled even if present in moduleChanges", () => {
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
+      inventory_enabled: true,
+      advanced_analytics_enabled: true,
+    });
+    expect(payload).toEqual({ inventory_enabled: true });
+    expect(payload).not.toHaveProperty("advanced_analytics_enabled");
   });
 });

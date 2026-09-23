@@ -95,7 +95,9 @@ describe("ModuleTogglesFieldset dirty-tracking", () => {
 // the "an ONBOARDER never sees an editable control that would 403" honesty
 // guarantee for the admin suite.
 describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
-  const DELIVERY_FLAGS = ["delivery_platforms_enabled", "uber_eats_enabled", "mrd_enabled"] as const;
+  const DELIVERY_FLAGS = [
+    "delivery_platforms_enabled", "uber_eats_enabled", "mrd_enabled", "advanced_analytics_enabled",
+  ] as const;
 
   it("defaults to locked (isSuperAdmin unset): no Switch/tri-state control for delivery flags, and clicking never fires onChange for them", () => {
     let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
@@ -144,5 +146,43 @@ describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
     expect(onButton).toBeDefined();
     fireEvent.click(onButton);
     expect(latest).toEqual({ uber_eats_enabled: true });
+  });
+
+  // Advanced Analytics (advanced_analytics_enabled, migration 0047) follows
+  // the exact same SUPER_ADMIN-only pattern as the delivery entitlements
+  // above -- an ONBOARDER must see its current value read-only (never an
+  // editable control that would 403 against ONBOARDER_PATCH_ALLOWED_FIELDS).
+  it("shows Advanced Analytics' real current state as a read-only badge when locked, never lets it be toggled", () => {
+    render(
+      <ModuleTogglesFieldset
+        changes={{}}
+        onChange={() => {
+          throw new Error("onChange must never be called for a locked SUPER_ADMIN-only flag");
+        }}
+        current={{ advanced_analytics_enabled: true }}
+      />
+    );
+    const row = screen.getByText("Advanced Analytics").closest("div")!.parentElement!;
+    expect(row.querySelectorAll("button")).toHaveLength(0);
+    expect(row.querySelector('[role="switch"]')).toBeNull();
+    expect(row.textContent).toContain("On");
+  });
+
+  it("isSuperAdmin=true renders Advanced Analytics as a real interactive control, same as any other flag", () => {
+    let latest: Partial<Record<ModuleFlagKey, boolean>> = {};
+    render(
+      <ModuleTogglesFieldset
+        changes={{}}
+        onChange={(key, value) => {
+          latest = { ...latest, ...(value === undefined ? {} : { [key]: value }) };
+        }}
+        isSuperAdmin
+      />
+    );
+    const row = screen.getByText("Advanced Analytics").closest("div")!.parentElement!;
+    const onButton = Array.from(row.querySelectorAll("button")).find((b) => b.textContent === "On")!;
+    expect(onButton).toBeDefined();
+    fireEvent.click(onButton);
+    expect(latest).toEqual({ advanced_analytics_enabled: true });
   });
 });
