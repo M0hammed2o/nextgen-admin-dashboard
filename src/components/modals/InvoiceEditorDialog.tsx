@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { commercialApi } from "@/api/commercial";
 import type { CommercialInvoice, InvoiceLineIn, InvoiceLineKind, PriceCatalogueEntry } from "@/types/commercial";
 import { randsToCents, centsToRandsInput, formatCentsAsRands } from "@/lib/money";
@@ -73,10 +73,37 @@ export function InvoiceEditorDialog({ open, onClose, businessId, businessPlan, p
   const [confirmIssueOpen, setConfirmIssueOpen] = useState(false);
   const [formError, setFormError] = useState("");
 
+  // KNOWN_BUGS.md BUG-0118 — fixed in the UI V2 programme.
+  //
+  // These two effects used to be one, with the dependency array
+  // [open, existingInvoice] deliberately excluding priceCatalogue.
+  // SalesClientPage fetches the catalogue on mount, so opening the editor
+  // BEFORE that request resolved produced an editor with no line items which
+  // then never back-filled, because the effect never re-ran. A human rarely
+  // saw it (the fetch starts on page mount and a person takes a second to
+  // click); automation hit it every time.
+  //
+  // They are SPLIT rather than just given a wider dependency array, because
+  // the two jobs have genuinely different triggers and merging them
+  // reintroduces a worse bug in one direction or the other:
+  //   - RESET must happen exactly when the dialog opens. Guarding it on
+  //     "lines are empty" would leave a previous invoice's lines on screen
+  //     when the editor is reopened for a new one.
+  //   - PREFILL must be able to happen LATER, when the catalogue lands, but
+  //     only into an editor that is still untouched. Without that guard a
+  //     late catalogue response would clobber lines the user had already
+  //     typed -- far worse than the gap being fixed.
+  const prefilledRef = useRef(false);
+
+  // 1. Reset for this opening.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      prefilledRef.current = false;
+      return;
+    }
     setFormError("");
     setSavedInvoice(existingInvoice);
+    setInternalNote(existingInvoice?.internal_note ?? "");
     if (existingInvoice) {
       setLines(
         existingInvoice.lines.map((l) => ({
@@ -88,20 +115,32 @@ export function InvoiceEditorDialog({ open, onClose, businessId, businessPlan, p
           _amountInput: centsToRandsInput(l.unit_amount_cents),
         }))
       );
-      setInternalNote(existingInvoice.internal_note ?? "");
+      // An existing draft owns its own lines; never prefill over them.
+      prefilledRef.current = true;
     } else {
-      // Prefill a SUBSCRIPTION line from the price catalogue when the
-      // client's plan has a known monthly price -- optional, removable.
-      const catalogueEntry = priceCatalogue.find((p) => p.plan === businessPlan);
-      setLines(
-        catalogueEntry
-          ? [blankLine("SUBSCRIPTION", `${businessPlan} plan — monthly subscription`, catalogueEntry.monthly_amount_cents)]
-          : []
-      );
-      setInternalNote("");
+      setLines([]);
+      prefilledRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, existingInvoice]);
+
+  // 2. Prefill a SUBSCRIPTION line once the catalogue is actually available.
+  //    Runs again when the catalogue arrives, which is the whole fix.
+  useEffect(() => {
+    if (!open || existingInvoice || prefilledRef.current) return;
+    const catalogueEntry = priceCatalogue.find((p) => p.plan === businessPlan);
+    if (!catalogueEntry) return; // not loaded yet, or no price for this plan
+    setLines((prev) => {
+      if (prev.length > 0) return prev; // the user has already typed something
+      prefilledRef.current = true;
+      return [
+        blankLine(
+          "SUBSCRIPTION",
+          `${businessPlan} plan — monthly subscription`,
+          catalogueEntry.monthly_amount_cents
+        ),
+      ];
+    });
+  }, [open, existingInvoice, priceCatalogue, businessPlan]);
 
   const updateLine = (localId: string, patch: Partial<EditableLine>) => {
     setLines((prev) => prev.map((l) => (l._localId === localId ? { ...l, ...patch } : l)));
