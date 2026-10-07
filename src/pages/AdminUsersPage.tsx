@@ -172,7 +172,7 @@ export default function AdminUsersPage() {
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold">Admin Users</h2>
+          {/* Title is rendered once by AdminTopbar (resolvePageTitle); pages do not repeat it. */}
           <p className="text-sm text-muted-foreground">
             Super Admins and sales-partner Onboarder logins. A demoted or deactivated account loses access
             immediately, on its very next request.

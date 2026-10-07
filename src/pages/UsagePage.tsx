@@ -128,7 +128,13 @@ export default function UsagePage() {
           </div>
 
           <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+            {/* overflow-x-auto matches every other admin table. Without it the
+                parent's overflow-hidden CLIPS these 6 columns on a phone and
+                the right-hand figures become unreachable rather than
+                scrollable -- and the suite must have no horizontal PAGE
+                scroll at 375px. */}
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[42rem]">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Business</th>
@@ -152,6 +158,7 @@ export default function UsagePage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       ) : (

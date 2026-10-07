@@ -69,7 +69,39 @@ export const PAGE_TITLES: Record<string, string> = {
   "/businesses": "Businesses",
   "/onboarding": "Onboarding",
   "/ai-emails": "AI Emails",
+  "/ai-emails/leads": "Leads",
   "/usage": "Usage Analytics",
   "/audit": "Audit Log",
   "/admin-users": "Admin Users",
 };
+
+// Detail routes (/businesses/:id and friends) have no exact entry above, so
+// they resolve by path prefix. LONGEST PREFIX FIRST: "/ai-emails/leads/" has
+// to be tested before "/ai-emails" would ever match, or every lead detail page
+// would be titled "AI Emails".
+const PAGE_TITLE_PREFIXES: ReadonlyArray<readonly [string, string]> = [
+  ["/businesses/", "Business Details"],
+  ["/onboarding/", "Onboarding Workspace"],
+  ["/sales/clients/", "Client"],
+  ["/ai-emails/leads/", "Lead"],
+];
+
+/**
+ * The topbar is the ONLY place an admin page title is rendered -- pages
+ * deliberately do not repeat it as their own heading, so this function is the
+ * single source of truth for "what page am I on".
+ *
+ * It previously lived inline in AdminTopbar as a chain of ternaries, which is
+ * how /ai-emails/leads and /ai-emails/leads/:id came to fall through to the
+ * generic "Admin": neither had an exact entry and neither had a prefix rule.
+ * Pulled out here so the resolution is testable per route rather than only
+ * observable by loading the app.
+ */
+export function resolvePageTitle(pathname: string): string {
+  const exact = PAGE_TITLES[pathname];
+  if (exact) return exact;
+  for (const [prefix, title] of PAGE_TITLE_PREFIXES) {
+    if (pathname.startsWith(prefix)) return title;
+  }
+  return "Admin";
+}

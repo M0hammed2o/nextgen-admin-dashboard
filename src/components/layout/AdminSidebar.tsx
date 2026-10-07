@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LogOut, Zap } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { AdminWordmark } from "./AdminWordmark";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/lib/constants";
 import { navItemsForRole, EXTERNAL_NAV_LINKS as externalLinks } from "@/lib/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,13 +19,8 @@ export function AdminSidebar() {
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-sidebar border-r border-sidebar-border min-h-screen">
-      <div className="flex items-center gap-2.5 px-6 py-5 border-b border-sidebar-border">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sidebar-primary/20">
-          <Zap className="w-4 h-4 text-sidebar-primary" />
-        </div>
-        <span className="text-base font-semibold text-sidebar-accent-foreground tracking-tight">
-          NextGen AI
-        </span>
+      <div className="px-6 py-5 border-b border-sidebar-border">
+        <AdminWordmark />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

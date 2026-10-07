@@ -59,7 +59,8 @@ export default function AiEmailLeadDetailPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">{lead.business_name}</h1>
+          {/* h2, not h1: AdminTopbar renders the page-level <h1> ("Lead"). */}
+          <h2 className="text-lg font-semibold">{lead.business_name}</h2>
           <p className="text-sm text-muted-foreground">{lead.category || "Uncategorised"}</p>
         </div>
         <span className="text-xs px-3 py-1 rounded-full font-medium bg-muted text-muted-foreground">

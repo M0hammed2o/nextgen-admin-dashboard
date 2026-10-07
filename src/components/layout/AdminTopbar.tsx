@@ -2,8 +2,9 @@ import { useLocation, NavLink } from "react-router-dom";
 import { Menu, LogOut, Moon, Sun } from "lucide-react";
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/lib/constants";
 import { useState, useEffect } from "react";
-import { Zap, X } from "lucide-react";
-import { navItemsForRole, PAGE_TITLES as pageTitles } from "@/lib/navigation";
+import { X } from "lucide-react";
+import { navItemsForRole, resolvePageTitle } from "@/lib/navigation";
+import { AdminWordmark } from "./AdminWordmark";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +25,10 @@ export function AdminTopbar() {
     localStorage.setItem("theme", dark ? "dark" : "light");
   }, [dark]);
 
-  const title =
-    pageTitles[location.pathname] ||
-    (location.pathname.startsWith("/businesses/") ? "Business Details" :
-     location.pathname.startsWith("/onboarding/") ? "Onboarding Workspace" :
-     location.pathname.startsWith("/sales/clients/") ? "Client" : "Admin");
+  // Resolution lives in lib/navigation.ts so it is testable per route -- the
+  // ternary chain that used to sit here silently titled /ai-emails/leads
+  // "Admin", because it had neither an exact entry nor a prefix rule.
+  const title = resolvePageTitle(location.pathname);
 
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);
@@ -39,16 +39,16 @@ export function AdminTopbar() {
   return (
     <>
       <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 lg:px-6 border-b border-border bg-card/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <button
             className="lg:hidden p-1.5 rounded-md hover:bg-muted"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="text-base font-semibold">{title}</h1>
+          <h1 className="text-[15px] sm:text-base font-semibold tracking-tight truncate">{title}</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setDark(!dark)}
             className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
@@ -77,12 +77,7 @@ export function AdminTopbar() {
           <div className="fixed inset-0 bg-foreground/40" onClick={() => setMobileOpen(false)} />
           <aside className="fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-sidebar-border">
-              <div className="flex items-center gap-2.5">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sidebar-primary/20">
-                  <Zap className="w-4 h-4 text-sidebar-primary" />
-                </div>
-                <span className="text-base font-semibold text-sidebar-accent-foreground">NextGen AI</span>
-              </div>
+              <AdminWordmark />
               <button onClick={() => setMobileOpen(false)} className="text-sidebar-foreground">
                 <X className="w-5 h-5" />
               </button>

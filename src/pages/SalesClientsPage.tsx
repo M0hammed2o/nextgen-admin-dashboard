@@ -50,7 +50,7 @@ export default function SalesClientsPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div>
-        <h2 className="text-base font-semibold">Clients</h2>
+        {/* Title is rendered once by AdminTopbar (resolvePageTitle); pages do not repeat it. */}
         <p className="text-sm text-muted-foreground">
           {isSuperAdmin ? "Every client, across every sales partner." : "Your clients and their commercial status."}
         </p>
