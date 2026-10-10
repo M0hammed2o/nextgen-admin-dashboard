@@ -21,9 +21,22 @@ vi.mock("@/api/businesses", () => ({
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({ me: { id: "a1", email: "a@nextgen.co.za", display_name: "A", role: "ONBOARDER", is_active: true }, isSuperAdmin: false, isOnboarder: true }),
-}));
+// A plain vi.fn() (not a fixed object) so individual tests can override the
+// caller's role via mockReturnValue -- needed to cover the SUPER_ADMIN path
+// added 2026-10-10 (Part C1/C2 fix) alongside the pre-existing ONBOARDER one.
+const mockUseAuth = vi.fn();
+vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => mockUseAuth() }));
+
+const ONBOARDER_AUTH = {
+  me: { id: "a1", email: "a@nextgen.co.za", display_name: "A", role: "ONBOARDER", is_active: true },
+  isSuperAdmin: false,
+  isOnboarder: true,
+};
+const SUPER_ADMIN_AUTH = {
+  me: { id: "s1", email: "s@nextgen.co.za", display_name: "S", role: "SUPER_ADMIN", is_active: true },
+  isSuperAdmin: true,
+  isOnboarder: false,
+};
 
 const BUSINESS: OnboardingBusiness = {
   id: "biz-1", name: "Barn Owl", slug: "barn-owl", business_code: "ABC123",
@@ -88,6 +101,11 @@ describe("OnboardingWorkspacePage go-live checklist + handover gating", () => {
     vi.mocked(businessesApi.listUsers).mockReset().mockResolvedValue([]);
     vi.mocked(businessesApi.getOnboardingStatus).mockReset();
     vi.mocked(businessesApi.completeOnboarding).mockReset();
+    vi.mocked(businessesApi.updateOnboardingBusiness).mockReset().mockResolvedValue(BUSINESS);
+    // Default every test to the existing ONBOARDER fixture -- only the new
+    // SUPER_ADMIN test below overrides this, so every pre-existing test's
+    // behaviour is completely unchanged by this restructuring.
+    mockUseAuth.mockReturnValue(ONBOARDER_AUTH);
   });
 
   it("renders pass/fail/warn/n-a badges for every check and disables Complete Handover while not ready", async () => {
@@ -155,7 +173,50 @@ describe("OnboardingWorkspacePage go-live checklist + handover gating", () => {
     expect(uberRow.textContent).toContain("Off");
 
     expect(screen.getAllByText("Only a NextGen super admin can change this.").length).toBeGreaterThan(0);
-    // No Switch/On/Off/Leave controls for the locked delivery rows.
-    expect(marketplaceRow.querySelectorAll("button")).toHaveLength(0);
+    // No Switch/On/Off/Leave controls for the locked delivery rows. The row's
+    // "More info" disclosure button (2026-10-10, Part C5) is excluded here --
+    // it only expands/collapses the description text and never calls
+    // onChange, so it is not one of the state-changing controls this
+    // assertion exists to rule out.
+    const stateChangingButtons = Array.from(marketplaceRow.querySelectorAll("button")).filter(
+      (b) => b.textContent !== "More info" && b.textContent !== "Less info"
+    );
+    expect(stateChangingButtons).toHaveLength(0);
+  });
+
+  // Fixed 2026-10-10 (confirmed frontend bug, Part C1/C2): a real SUPER_ADMIN
+  // using THIS exact page (reachable by both roles) used to see delivery/
+  // Uber/Mr D/Advanced Analytics/Loyalty as locked "Unknown" rows they could
+  // not set -- even though the backend already allows a SUPER_ADMIN caller
+  // to set these fields via this same PATCH endpoint. This is the
+  // end-to-end proof, through the real page (not just the two unit-tested
+  // pieces in isolation): the fieldset renders an editable Switch, AND the
+  // resulting save actually includes the field in the request.
+  it("SUPER_ADMIN sees delivery entitlements as editable Switches, and saving actually sends a change", async () => {
+    mockUseAuth.mockReturnValue(SUPER_ADMIN_AUTH);
+    vi.mocked(businessesApi.getOnboardingStatus).mockResolvedValue(makeStatus({}));
+    renderPage();
+
+    await screen.findByText("Delivery Marketplace");
+    // No "locked" messaging at all for a SUPER_ADMIN.
+    expect(screen.queryByText("Only a NextGen super admin can change this.")).not.toBeInTheDocument();
+
+    const uberRow = screen.getByText("Uber Eats").closest("div")!.parentElement!;
+    const uberSwitch = uberRow.querySelector('[role="switch"]');
+    expect(uberSwitch).not.toBeNull(); // a real Switch, not a locked badge
+    expect(uberSwitch).toHaveAttribute("aria-checked", "false"); // BUSINESS fixture: uber_eats_enabled: false
+
+    fireEvent.click(uberSwitch!);
+
+    const saveButton = screen.getByRole("button", { name: "Save Changes" });
+    expect(saveButton).not.toBeDisabled();
+    fireEvent.click(saveButton);
+
+    await waitFor(() =>
+      expect(businessesApi.updateOnboardingBusiness).toHaveBeenCalledWith(
+        "biz-1",
+        expect.objectContaining({ uber_eats_enabled: true })
+      )
+    );
   });
 });

@@ -197,53 +197,68 @@ export interface UpdateBusinessRequest {
   // 264aac4, 2026-09-22, verified by reading the current
   // routes_businesses.py).
   digital_receipts_enabled?: boolean;
-  // Delivery marketplace entitlements (migration 0044) -- deliberately NOT
-  // added to OnboardingBusinessUpdate/ONBOARDER_PATCH_ALLOWED_FIELDS below:
+  // Delivery marketplace entitlements (migration 0044) -- SUPER_ADMIN-only:
   // enabling a live delivery integration carries real contractual weight
   // with Uber that a sales partner shouldn't be able to flip unilaterally
-  // (see docs/DELIVERY_PLATFORM_ARCHITECTURE.md §7). Only reachable via
-  // EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-gated routes), which
-  // pass ModuleTogglesFieldset's isSuperAdmin prop explicitly.
+  // (see docs/DELIVERY_PLATFORM_ARCHITECTURE.md §7). Settable from
+  // EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-gated routes) and,
+  // for a SUPER_ADMIN specifically (never an ONBOARDER), from the
+  // onboarding workspace too -- see OnboardingBusinessUpdate below and
+  // lib/onboardingPatch.ts's isSuperAdmin parameter. The backend's own
+  // per-request role check (routes_businesses.py::update_business) is what
+  // actually enforces this, not this type.
   delivery_platforms_enabled?: boolean;
   uber_eats_enabled?: boolean;
   mrd_enabled?: boolean;
   // Advanced Analytics entitlement (migration 0047) -- Commercial V1 tier
   // gate (NextGen Complete and above), same "platform decision, not a
-  // tenant toggle" rationale as the delivery entitlements above --
-  // deliberately NOT added to OnboardingBusinessUpdate/
-  // ONBOARDER_PATCH_ALLOWED_FIELDS below: a sales partner should not be able
-  // to unilaterally unlock a paid tier's analytics for a POS-only deal. Only
-  // reachable via EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-gated
-  // routes), which pass ModuleTogglesFieldset's isSuperAdmin prop explicitly.
+  // tenant toggle, SUPER_ADMIN-only" rationale as the delivery entitlements
+  // above -- a sales partner should not be able to unilaterally unlock a
+  // paid tier's analytics for a POS-only deal. Settable from
+  // EditBusinessModal/CreateBusinessModal, and from the onboarding
+  // workspace when the caller is actually a SUPER_ADMIN (see
+  // OnboardingBusinessUpdate below).
   advanced_analytics_enabled?: boolean;
   // Loyalty entitlement (migration 0051, KNOWN_BUGS.md BUG-0107) -- Commercial
   // V1 tier gate (NextGen Complete and above), same "platform decision, not a
-  // tenant toggle" rationale as the delivery/analytics entitlements above --
-  // deliberately NOT added to OnboardingBusinessUpdate/
-  // ONBOARDER_PATCH_ALLOWED_FIELDS below: a sales partner should not be able
-  // to unilaterally unlock a paid tier's Loyalty module for a POS-only deal.
-  // Only reachable via EditBusinessModal/CreateBusinessModal (SUPER_ADMIN-
-  // gated routes), which pass ModuleTogglesFieldset's isSuperAdmin prop
-  // explicitly.
+  // tenant toggle, SUPER_ADMIN-only" rationale as the delivery/analytics
+  // entitlements above -- a sales partner should not be able to unilaterally
+  // unlock a paid tier's Loyalty module for a POS-only deal. Settable from
+  // EditBusinessModal/CreateBusinessModal, and from the onboarding workspace
+  // when the caller is actually a SUPER_ADMIN (see OnboardingBusinessUpdate
+  // below).
   loyalty_enabled?: boolean;
   staff_live_orders_tab_enabled?: boolean;
   staff_wastage_tab_enabled?: boolean;
   staff_stocktake_tab_enabled?: boolean;
 }
 
-// The PATCH allow-list an ONBOARDER may send (ONBOARDER_PATCH_ALLOWED_FIELDS
-// in admin_api/app/api/v1/routes_businesses.py) -- anything else 403s with
-// FIELD_NOT_ALLOWED. Used by OnboardingWorkspacePage's inline edit so it's
-// structurally impossible to build a payload with a forbidden field.
-// Deliberately does NOT include delivery_platforms_enabled/uber_eats_enabled/
-// mrd_enabled/advanced_analytics_enabled/loyalty_enabled -- those stay
-// SUPER_ADMIN-only (see UpdateBusinessRequest above), and OnboardingWorkspacePage/
-// CreateOnboardingBusinessModal never
-// let ANY role toggle them from here (both are reachable by ONBOARDER, and
-// the reduced onboarding-workspace edit surface is deliberately narrower
-// than full BusinessUpdate for both roles already -- e.g. Suspend/Limits/
-// OrderPack are also only editable from the fuller /businesses page). A real
-// SUPER_ADMIN who wants to set these uses that fuller page instead.
+// The full set of fields the onboarding workspace's "Restaurant, Plan &
+// Modules" section can ever produce a PATCH for. This is wider than any
+// single role may actually send -- the role-specific allow-list is
+// `ONBOARDER_MODULE_KEYS`/`SUPER_ADMIN_ONLY_MODULE_KEYS` in
+// lib/onboardingPatch.ts, which `buildOnboardingBasicsPatch(..., isSuperAdmin)`
+// enforces at payload-build time (never a raw spread of moduleChanges), so a
+// bug here at the type level cannot by itself let an ONBOARDER's payload
+// include a SUPER_ADMIN-only key -- that is a runtime guarantee, not just a
+// type one; see onboardingPatch.test.ts's "never forwards ... even if
+// present in moduleChanges" tests.
+//
+// Reduced from the fuller UpdateBusinessRequest on purpose beyond the role
+// question too -- e.g. Suspend/Limits/OrderPack are only editable from the
+// fuller /businesses page regardless of role.
+//
+// delivery_platforms_enabled/uber_eats_enabled/mrd_enabled/
+// advanced_analytics_enabled/loyalty_enabled were ADDED here 2026-10-10,
+// fixing a confirmed frontend bug: `routes_businesses.py::update_business`'s
+// ONBOARDER allow-list check is skipped entirely for a SUPER_ADMIN caller
+// (`if user.role == AdminRole.ONBOARDER: ...`), so the backend already
+// accepted these fields from a SUPER_ADMIN on this exact endpoint -- the gap
+// was purely that this frontend type, `ModuleTogglesFieldset`'s isSuperAdmin
+// prop, and buildOnboardingBasicsPatch's forwarding logic had never been
+// wired to actually send them. An ONBOARDER still cannot -- see
+// ONBOARDER_MODULE_KEYS in lib/onboardingPatch.ts, the actual enforcement
+// point.
 export type OnboardingBusinessUpdate = Pick<
   UpdateBusinessRequest,
   | "name"
@@ -256,6 +271,11 @@ export type OnboardingBusinessUpdate = Pick<
   | "staff_live_orders_tab_enabled"
   | "staff_wastage_tab_enabled"
   | "staff_stocktake_tab_enabled"
+  | "delivery_platforms_enabled"
+  | "uber_eats_enabled"
+  | "mrd_enabled"
+  | "advanced_analytics_enabled"
+  | "loyalty_enabled"
 >;
 
 export interface OrderPackRequest {

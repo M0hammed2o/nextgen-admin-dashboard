@@ -48,13 +48,13 @@ const FORM: OnboardingBasicsForm = {
   whatsapp_phone_number_id: BUSINESS.whatsapp_phone_number_id ?? "",
 };
 
-describe("buildOnboardingBasicsPatch", () => {
+describe("buildOnboardingBasicsPatch — ONBOARDER caller (isSuperAdmin: false)", () => {
   it("sends nothing when nothing changed", () => {
-    expect(buildOnboardingBasicsPatch(FORM, BUSINESS, {})).toEqual({});
+    expect(buildOnboardingBasicsPatch(FORM, BUSINESS, {}, false)).toEqual({});
   });
 
   it("sends only the field that actually changed", () => {
-    const payload = buildOnboardingBasicsPatch({ ...FORM, name: "Barn Owl Renamed" }, BUSINESS, {});
+    const payload = buildOnboardingBasicsPatch({ ...FORM, name: "Barn Owl Renamed" }, BUSINESS, {}, false);
     expect(payload).toEqual({ name: "Barn Owl Renamed" });
   });
 
@@ -62,18 +62,19 @@ describe("buildOnboardingBasicsPatch", () => {
     const payload = buildOnboardingBasicsPatch(
       { ...FORM, timezone: "Europe/London", plan: "GROWTH" },
       BUSINESS,
-      {}
+      {},
+      false
     );
     expect(payload).toEqual({ timezone: "Europe/London", plan: "GROWTH" });
   });
 
   it("clears whatsapp_phone_number_id to null when blanked, not to an empty string", () => {
-    const payload = buildOnboardingBasicsPatch({ ...FORM, whatsapp_phone_number_id: "" }, BUSINESS, {});
+    const payload = buildOnboardingBasicsPatch({ ...FORM, whatsapp_phone_number_id: "" }, BUSINESS, {}, false);
     expect(payload).toEqual({ whatsapp_phone_number_id: null });
   });
 
   it("merges in module changes untouched (already dirty-tracked by ModuleTogglesFieldset)", () => {
-    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, { inventory_enabled: true });
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, { inventory_enabled: true }, false);
     expect(payload).toEqual({ inventory_enabled: true });
   });
 
@@ -81,7 +82,8 @@ describe("buildOnboardingBasicsPatch", () => {
     const payload = buildOnboardingBasicsPatch(
       { name: "New Name", timezone: "UTC", plan: "GROWTH", whatsapp_phone_number_id: "999" },
       BUSINESS,
-      { inventory_enabled: true, is_whatsapp_enabled: false }
+      { inventory_enabled: true, is_whatsapp_enabled: false },
+      false
     );
     const allowed = new Set([
       "name", "timezone", "plan", "whatsapp_phone_number_id",
@@ -97,14 +99,15 @@ describe("buildOnboardingBasicsPatch", () => {
   // mrd_enabled, migration 0044) are SUPER_ADMIN-writable only -- absent from
   // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Even if moduleChanges somehow
   // contained one (it shouldn't -- ModuleTogglesFieldset never emits it for
-  // a non-SUPER_ADMIN caller), this function must still never forward it.
+  // a non-SUPER_ADMIN caller), this function must still never forward one
+  // for an ONBOARDER caller (isSuperAdmin: false).
   it("never forwards a delivery-entitlement key even if present in moduleChanges", () => {
     const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
       inventory_enabled: true,
       delivery_platforms_enabled: true,
       uber_eats_enabled: true,
       mrd_enabled: true,
-    });
+    }, false);
     expect(payload).toEqual({ inventory_enabled: true });
     expect(payload).not.toHaveProperty("delivery_platforms_enabled");
     expect(payload).not.toHaveProperty("uber_eats_enabled");
@@ -115,15 +118,14 @@ describe("buildOnboardingBasicsPatch", () => {
   // Commercial V1 tier-gate entitlement, SUPER_ADMIN-writable only -- same
   // "platform decision, not a tenant toggle" rationale as the delivery
   // entitlements above, and equally absent from
-  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Even if moduleChanges somehow
-  // contained it (it shouldn't -- ModuleTogglesFieldset never emits it for a
-  // non-SUPER_ADMIN caller), this function must still never forward it, so an
-  // ONBOARDER can never unlock a paid analytics tier via this path.
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Must never be forwarded for
+  // an ONBOARDER caller, so an ONBOARDER can never unlock a paid analytics
+  // tier via this path.
   it("never forwards advanced_analytics_enabled even if present in moduleChanges", () => {
     const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
       inventory_enabled: true,
       advanced_analytics_enabled: true,
-    });
+    }, false);
     expect(payload).toEqual({ inventory_enabled: true });
     expect(payload).not.toHaveProperty("advanced_analytics_enabled");
   });
@@ -132,15 +134,14 @@ describe("buildOnboardingBasicsPatch", () => {
   // Commercial V1 tier-gate entitlement, SUPER_ADMIN-writable only -- same
   // "platform decision, not a tenant toggle" rationale as the delivery/
   // analytics entitlements above, and equally absent from
-  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Even if moduleChanges somehow
-  // contained it (it shouldn't -- ModuleTogglesFieldset never emits it for a
-  // non-SUPER_ADMIN caller), this function must still never forward it, so an
-  // ONBOARDER can never unlock the paid Loyalty module via this path.
+  // ONBOARDER_PATCH_ALLOWED_FIELDS server-side. Must never be forwarded for
+  // an ONBOARDER caller, so an ONBOARDER can never unlock the paid Loyalty
+  // module via this path.
   it("never forwards loyalty_enabled even if present in moduleChanges", () => {
     const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
       inventory_enabled: true,
       loyalty_enabled: true,
-    });
+    }, false);
     expect(payload).toEqual({ inventory_enabled: true });
     expect(payload).not.toHaveProperty("loyalty_enabled");
   });
@@ -149,7 +150,8 @@ describe("buildOnboardingBasicsPatch", () => {
     const payload = buildOnboardingBasicsPatch(
       { name: "New Name", timezone: "UTC", plan: "GROWTH", whatsapp_phone_number_id: "999" },
       BUSINESS,
-      { inventory_enabled: true, is_whatsapp_enabled: false, loyalty_enabled: true }
+      { inventory_enabled: true, is_whatsapp_enabled: false, loyalty_enabled: true },
+      false
     );
     const allowed = new Set([
       "name", "timezone", "plan", "whatsapp_phone_number_id",
@@ -160,5 +162,56 @@ describe("buildOnboardingBasicsPatch", () => {
       expect(allowed.has(key)).toBe(true);
     }
     expect(payload).not.toHaveProperty("loyalty_enabled");
+  });
+});
+
+// Added 2026-10-10 fixing the confirmed frontend bug: the backend already
+// accepted these 5 fields from a real SUPER_ADMIN on this exact endpoint
+// (its ONBOARDER allow-list check is skipped entirely when
+// `user.role != ONBOARDER` -- routes_businesses.py::update_business), but
+// nothing in this frontend had ever been wired to actually send them, so a
+// SUPER_ADMIN's change was silently dropped before this fix (success toast,
+// no real change -- worse than the original "shown as locked" bug, which at
+// least didn't claim to have saved anything).
+describe("buildOnboardingBasicsPatch — SUPER_ADMIN caller (isSuperAdmin: true)", () => {
+  it("forwards a delivery-entitlement change", () => {
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
+      delivery_platforms_enabled: true,
+      uber_eats_enabled: true,
+      mrd_enabled: true,
+    }, true);
+    expect(payload).toEqual({
+      delivery_platforms_enabled: true,
+      uber_eats_enabled: true,
+      mrd_enabled: true,
+    });
+  });
+
+  it("forwards advanced_analytics_enabled", () => {
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, { advanced_analytics_enabled: true }, true);
+    expect(payload).toEqual({ advanced_analytics_enabled: true });
+  });
+
+  it("forwards loyalty_enabled", () => {
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, { loyalty_enabled: true }, true);
+    expect(payload).toEqual({ loyalty_enabled: true });
+  });
+
+  it("forwards a mix of ONBOARDER-safe and SUPER_ADMIN-only keys together", () => {
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, {
+      inventory_enabled: true,
+      loyalty_enabled: true,
+    }, true);
+    expect(payload).toEqual({ inventory_enabled: true, loyalty_enabled: true });
+  });
+
+  it("still sends nothing when nothing changed, even for a SUPER_ADMIN", () => {
+    expect(buildOnboardingBasicsPatch(FORM, BUSINESS, {}, true)).toEqual({});
+  });
+
+  it("still only sends a field whose value actually changed", () => {
+    // undefined in moduleChanges means "untouched" regardless of caller role.
+    const payload = buildOnboardingBasicsPatch(FORM, BUSINESS, { loyalty_enabled: undefined }, true);
+    expect(payload).toEqual({});
   });
 });

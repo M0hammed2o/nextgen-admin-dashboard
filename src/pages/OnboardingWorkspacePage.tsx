@@ -146,7 +146,7 @@ export default function OnboardingWorkspacePage() {
 
   const handleSaveBasics = async () => {
     if (!business || !id) return;
-    const payload = buildOnboardingBasicsPatch(form, business, moduleChanges);
+    const payload = buildOnboardingBasicsPatch(form, business, moduleChanges, isSuperAdmin);
     if (Object.keys(payload).length === 0) return;
     setSavingBasics(true);
     try {
@@ -284,13 +284,17 @@ export default function OnboardingWorkspacePage() {
         <ModuleTogglesFieldset
           changes={moduleChanges}
           onChange={setModuleFlag}
-          // isSuperAdmin deliberately NOT passed -- reachable by BOTH roles,
-          // and delivery_platforms_enabled/uber_eats_enabled/mrd_enabled stay
-          // locked/read-only here for either role (see OnboardingBusinessUpdate's
-          // comment in types/business.ts for why -- a real SUPER_ADMIN edits
-          // these from the fuller Businesses page instead). Their real current
-          // value is still passed below so the locked row shows an accurate
-          // On/Off badge rather than "Unknown".
+          // isSuperAdmin is read from the CURRENT caller's own session
+          // (useAuth, above) -- this page is reachable by both roles, so who
+          // is actually logged in decides whether delivery/Uber/Mr D/Advanced
+          // Analytics/Loyalty render as editable or as locked read-only rows.
+          // Fixed 2026-10-10 (confirmed frontend bug): this used to be
+          // hardcoded to the ONBOARDER-locked view for every caller. See
+          // lib/onboardingPatch.ts's isSuperAdmin parameter for the matching
+          // fix on the save path -- the fieldset alone being correct here
+          // would otherwise let a SUPER_ADMIN flip a switch that then gets
+          // silently dropped on save.
+          isSuperAdmin={isSuperAdmin}
           current={{
             is_whatsapp_enabled: business.is_whatsapp_enabled,
             inventory_enabled: business.inventory_enabled,

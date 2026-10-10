@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { MODULE_FLAGS, type ModuleFlagKey } from "@/lib/modules";
 import { Switch } from "@/components/ui/switch";
 
@@ -46,6 +48,38 @@ interface Props {
  * module this UI can't see is already enabled, so "Leave" is the only safe
  * default in that case.
  */
+/**
+ * Every flag's `description` can run to 2-3 sentences (the commercial
+ * entitlements especially -- see lib/modules.ts's own comments on why each
+ * warning exists). Shown in full, 8+ rows of that is what made this modal
+ * "extremely long" -- but the warnings themselves (Uber approval, "commercial
+ * entitlement only") are exactly the text that must never get cut, just
+ * deferred. So: collapsed by default, one line, with a "More info" toggle
+ * per row that reveals the SAME description text untouched -- no flag's
+ * wording is shortened, paraphrased, or split into a separate "short"
+ * variant that could drift from the real one in lib/modules.ts.
+ */
+function Description({ flagKey, text }: { flagKey: ModuleFlagKey; text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="min-w-0">
+      <p className={expanded ? "text-xs text-muted-foreground" : "text-xs text-muted-foreground truncate"}>
+        {text}
+      </p>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="mt-0.5 inline-flex items-center gap-0.5 text-[11px] font-medium text-primary hover:underline"
+        aria-expanded={expanded}
+        aria-controls={`module-desc-${flagKey}`}
+      >
+        {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        {expanded ? "Less info" : "More info"}
+      </button>
+    </div>
+  );
+}
+
 export function ModuleTogglesFieldset({ changes, onChange, current, isSuperAdmin = false }: Props) {
   const editableFlags = MODULE_FLAGS.filter((f) => !f.superAdminOnly || isSuperAdmin);
   const anyUnknown = editableFlags.some((f) => current?.[f.key] === undefined);
@@ -66,9 +100,9 @@ export function ModuleTogglesFieldset({ changes, onChange, current, isSuperAdmin
           const known = current?.[flag.key];
           return (
             <div key={flag.key} className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0 opacity-90">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{flag.label}</p>
-                <p className="text-xs text-muted-foreground">{flag.description}</p>
+                <Description flagKey={flag.key} text={flag.description} />
                 <p className="text-xs text-warning mt-0.5">Only a NextGen super admin can change this.</p>
               </div>
               <span
@@ -90,15 +124,16 @@ export function ModuleTogglesFieldset({ changes, onChange, current, isSuperAdmin
         if (known !== undefined) {
           const value = changes[flag.key] ?? known;
           return (
-            <div key={flag.key} className="flex items-center justify-between gap-3 py-2 border-b border-border last:border-0">
-              <div>
+            <div key={flag.key} className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{flag.label}</p>
-                <p className="text-xs text-muted-foreground">{flag.description}</p>
+                <Description flagKey={flag.key} text={flag.description} />
               </div>
               <Switch
                 checked={value}
                 onCheckedChange={(v) => onChange(flag.key, v === known ? undefined : v)}
                 aria-label={flag.label}
+                className="mt-0.5 shrink-0"
               />
             </div>
           );
@@ -107,9 +142,9 @@ export function ModuleTogglesFieldset({ changes, onChange, current, isSuperAdmin
         const value = changes[flag.key];
         return (
           <div key={flag.key} className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{flag.label}</p>
-              <p className="text-xs text-muted-foreground">{flag.description}</p>
+              <Description flagKey={flag.key} text={flag.description} />
             </div>
             <div className="flex gap-1 shrink-0">
               {([

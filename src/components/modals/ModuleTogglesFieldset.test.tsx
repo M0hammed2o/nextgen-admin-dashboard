@@ -4,6 +4,24 @@ import { useState } from "react";
 import { ModuleTogglesFieldset } from "./ModuleTogglesFieldset";
 import { MODULE_FLAGS, type ModuleFlagKey } from "@/lib/modules";
 
+/**
+ * Every row now also carries a "More info" / "Less info" button (2026-10-10,
+ * Part C5 -- compacts the long per-flag descriptions behind a disclosure).
+ * It never calls `onChange` and never changes any module's state -- it only
+ * expands/collapses its own description text. The locked-row tests below
+ * exist to prove a flag CANNOT be toggled by an ONBOARDER; that property is
+ * what this helper checks for, not "this row contains literally zero
+ * buttons of any kind" (which stopped being true the moment a second, inert
+ * kind of button existed). `role="switch"` absence and the throwing
+ * `onChange` elsewhere in these tests are what actually prove the real
+ * safety property, and both remain unchanged.
+ */
+function stateChangingButtons(row: HTMLElement): HTMLElement[] {
+  return Array.from(row.querySelectorAll("button")).filter(
+    (b) => b.textContent !== "More info" && b.textContent !== "Less info"
+  );
+}
+
 // Mirrors the exact dirty-tracking logic used in CreateBusinessModal and
 // EditBusinessModal: a key only appears in `changes` once the admin
 // explicitly picks On/Off; picking "Leave" removes it again. This is the
@@ -107,7 +125,7 @@ describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
       const label = MODULE_FLAGS.find((f) => f.key === key)!.label;
       const row = screen.getByText(label).closest("div")!.parentElement!;
       // No Switch, no Leave/On/Off buttons -- just a locked info row.
-      expect(row.querySelectorAll("button")).toHaveLength(0);
+      expect(stateChangingButtons(row)).toHaveLength(0);
       expect(row.querySelector('[role="switch"]')).toBeNull();
       expect(screen.getAllByText("Only a NextGen super admin can change this.").length).toBeGreaterThan(0);
     }
@@ -163,7 +181,7 @@ describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
       />
     );
     const row = screen.getByText("Advanced Analytics").closest("div")!.parentElement!;
-    expect(row.querySelectorAll("button")).toHaveLength(0);
+    expect(stateChangingButtons(row)).toHaveLength(0);
     expect(row.querySelector('[role="switch"]')).toBeNull();
     expect(row.textContent).toContain("On");
   });
@@ -203,7 +221,7 @@ describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
       />
     );
     const row = screen.getByText("Loyalty").closest("div")!.parentElement!;
-    expect(row.querySelectorAll("button")).toHaveLength(0);
+    expect(stateChangingButtons(row)).toHaveLength(0);
     expect(row.querySelector('[role="switch"]')).toBeNull();
     expect(row.textContent).toContain("On");
     expect(screen.getAllByText("Only a NextGen super admin can change this.").length).toBeGreaterThan(0);
@@ -214,7 +232,7 @@ describe("ModuleTogglesFieldset SUPER_ADMIN-only gating", () => {
     render(<Harness onChangesUpdate={(c) => (latest = c)} />);
 
     const row = screen.getByText("Loyalty").closest("div")!.parentElement!;
-    expect(row.querySelectorAll("button")).toHaveLength(0);
+    expect(stateChangingButtons(row)).toHaveLength(0);
     expect(row.querySelector('[role="switch"]')).toBeNull();
     expect(latest).toEqual({});
   });

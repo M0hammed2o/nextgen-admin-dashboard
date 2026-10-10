@@ -9,6 +9,7 @@ import { PlanSelect } from "@/components/modals/PlanSelect";
 import { ModuleTogglesFieldset } from "@/components/modals/ModuleTogglesFieldset";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
@@ -34,6 +35,16 @@ function slugify(name: string): string {
  * Businesses page for SUPER_ADMIN if it's ever needed).
  */
 export function CreateOnboardingBusinessModal({ open, onClose, onSuccess }: Props) {
+  // This modal IS reachable by both roles (it lives on /onboarding), but that
+  // never meant "always render it as an ONBOARDER" -- it means "ask who is
+  // actually logged in right now and render accordingly". The previous
+  // version hardcoded the ONBOARDER-locked view unconditionally, so a real
+  // SUPER_ADMIN using /onboarding saw delivery/Uber/Mr D/Advanced
+  // Analytics/Loyalty as locked "Unknown" rows they could not set at
+  // creation time -- a frontend-only bug; ModuleTogglesFieldset itself
+  // already supported this distinction correctly via its own isSuperAdmin
+  // prop (see that component's doc comment).
+  const { isSuperAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -160,13 +171,15 @@ export function CreateOnboardingBusinessModal({ open, onClose, onSuccess }: Prop
 
           <hr className="border-border" />
           <p className="text-sm font-medium">Modules</p>
-          {/* isSuperAdmin deliberately NOT passed -- this modal is reachable
-              by BOTH roles, and delivery entitlements (delivery_platforms_enabled/
-              uber_eats_enabled/mrd_enabled) stay locked/read-only here
-              regardless of the actual caller's role; a SUPER_ADMIN sets them
-              from the fuller Businesses page after creation instead. See
+          {/* isSuperAdmin is read from the CURRENT caller's own session
+              (useAuth above), not hardcoded -- this modal is reachable by
+              both roles, so who is actually logged in decides whether
+              delivery/Uber/Mr D/Advanced Analytics/Loyalty render as
+              editable or as locked read-only rows. A real SUPER_ADMIN can
+              set them right here at creation time; an ONBOARDER still
+              cannot, and still only sees them as locked. See
               ModuleTogglesFieldset's isSuperAdmin doc comment. */}
-          <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} />
+          <ModuleTogglesFieldset changes={moduleChanges} onChange={setModuleFlag} isSuperAdmin={isSuperAdmin} />
 
           <hr className="border-border" />
           <label className="flex items-center gap-2 text-sm">
