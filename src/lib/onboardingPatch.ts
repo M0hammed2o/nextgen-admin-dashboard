@@ -51,6 +51,7 @@ const SUPER_ADMIN_ONLY_MODULE_KEYS = [
   "delivery_platforms_enabled",
   "uber_eats_enabled",
   "mrd_enabled",
+  "delivery_reconciliation_enabled",
   "advanced_analytics_enabled",
   "loyalty_enabled",
 ] as const satisfies readonly ModuleFlagKey[];

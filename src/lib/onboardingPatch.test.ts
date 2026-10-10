@@ -32,6 +32,7 @@ const BUSINESS: OnboardingBusiness = {
   delivery_platforms_enabled: false,
   uber_eats_enabled: false,
   mrd_enabled: false,
+  delivery_reconciliation_enabled: false,
   advanced_analytics_enabled: false,
   loyalty_enabled: false,
   staff_live_orders_tab_enabled: true,

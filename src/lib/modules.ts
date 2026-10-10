@@ -19,6 +19,7 @@ export type ModuleFlagKey =
   | "delivery_platforms_enabled"
   | "uber_eats_enabled"
   | "mrd_enabled"
+  | "delivery_reconciliation_enabled"
   | "advanced_analytics_enabled"
   | "loyalty_enabled"
   | "staff_live_orders_tab_enabled"
@@ -74,6 +75,12 @@ export const MODULE_FLAGS: ModuleFlagDef[] = [
     key: "mrd_enabled",
     label: "Mr D",
     description: "Commercial entitlement only. No live Mr D order-injection API exists today -- Mr D stays CSV file reconciliation regardless of this flag. Never implies a live Mr D connection.",
+    superAdminOnly: true,
+  },
+  {
+    key: "delivery_reconciliation_enabled",
+    label: "Delivery Reconciliation",
+    description: "CSV/manual reconciliation for Uber Eats, Mr D and other delivery channels. This does NOT enable live delivery-platform API connections -- that is Delivery Marketplace (and the per-provider Uber Eats/Mr D flags) above, a separate entitlement. A restaurant can have reconciliation, marketplace integrations, both, or neither.",
     superAdminOnly: true,
   },
   {

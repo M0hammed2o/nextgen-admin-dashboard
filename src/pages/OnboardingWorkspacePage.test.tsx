@@ -46,6 +46,7 @@ const BUSINESS: OnboardingBusiness = {
   last_webhook_received_at: null, created_at: "2026-01-01T00:00:00Z",
   is_whatsapp_enabled: false, inventory_enabled: false, digital_receipts_enabled: false,
   delivery_platforms_enabled: true, uber_eats_enabled: false, mrd_enabled: false,
+  delivery_reconciliation_enabled: false,
   advanced_analytics_enabled: false,
   loyalty_enabled: false,
   staff_live_orders_tab_enabled: true, staff_wastage_tab_enabled: true, staff_stocktake_tab_enabled: true,

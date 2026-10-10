@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CreateOnboardingBusinessModal } from "./CreateOnboardingBusinessModal";
 import { businessesApi } from "@/api/businesses";
+import type { OnboardingBusiness } from "@/types/business";
 
 // jsdom doesn't implement ResizeObserver, which PlanSelect's underlying
 // Radix Select primitive needs (@radix-ui/react-use-size) -- without this,
@@ -36,8 +37,11 @@ const SUPER_ADMIN_AUTH = { me: { id: "s1", role: "SUPER_ADMIN" }, isSuperAdmin: 
 
 describe("CreateOnboardingBusinessModal — SUPER_ADMIN module access (Part C1/C2 fix)", () => {
   beforeEach(() => {
-    vi.mocked(businessesApi.createOnboardingBusiness).mockReset().mockResolvedValue({ id: "new-biz-1" });
-    vi.mocked(businessesApi.updateOnboardingBusiness).mockReset().mockResolvedValue({ id: "new-biz-1" });
+    // Only `.id` matters to these tests (it's passed straight into the
+    // follow-up updateOnboardingBusiness call) -- cast rather than filling
+    // in all ~25 unused OnboardingBusiness fields.
+    vi.mocked(businessesApi.createOnboardingBusiness).mockReset().mockResolvedValue({ id: "new-biz-1" } as OnboardingBusiness);
+    vi.mocked(businessesApi.updateOnboardingBusiness).mockReset().mockResolvedValue({ id: "new-biz-1" } as OnboardingBusiness);
     mockUseAuth.mockReturnValue(ONBOARDER_AUTH);
   });
 

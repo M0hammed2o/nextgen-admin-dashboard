@@ -54,6 +54,11 @@ export interface Business {
   delivery_platforms_enabled: boolean;
   uber_eats_enabled: boolean;
   mrd_enabled: boolean;
+  // Delivery reconciliation entitlement (migration 0054, UI V2.1 follow-up)
+  // -- DELIBERATELY SEPARATE from delivery_platforms_enabled above: gates
+  // the CSV/manual reconciliation importer, not the live marketplace
+  // integrations. Same SUPER_ADMIN-writable-only pattern.
+  delivery_reconciliation_enabled: boolean;
   // Advanced Analytics entitlement (migration 0047, admin_api schemas verified
   // 2026-09-23) -- Commercial V1 tier gate (NextGen Complete and above) for
   // the average-order-value/payment-method-split/delivery-channel-performance
@@ -148,6 +153,13 @@ export interface OnboardingBusiness {
   delivery_platforms_enabled: boolean;
   uber_eats_enabled: boolean;
   mrd_enabled: boolean;
+  // Read-only here too -- DELIBERATELY SEPARATE entitlement (CSV/manual
+  // reconciliation, not the live marketplace), same rationale as
+  // delivery_platforms_enabled above (visible so an onboarder knows to
+  // escalate, not onboarder-actionable -- deliberately absent from
+  // OnboardingBusinessUpdate below/ONBOARDER_PATCH_ALLOWED_FIELDS
+  // server-side).
+  delivery_reconciliation_enabled: boolean;
   // Read-only here too, same rationale as delivery_platforms_enabled above
   // (visible so an onboarder knows to escalate, not onboarder-actionable --
   // deliberately absent from OnboardingBusinessUpdate below/
@@ -210,6 +222,12 @@ export interface UpdateBusinessRequest {
   delivery_platforms_enabled?: boolean;
   uber_eats_enabled?: boolean;
   mrd_enabled?: boolean;
+  // Delivery reconciliation entitlement (migration 0054, UI V2.1 follow-up)
+  // -- DELIBERATELY SEPARATE from delivery_platforms_enabled above: gates
+  // the CSV/manual reconciliation importer, not the live marketplace
+  // integrations. Same SUPER_ADMIN-only rationale, settable from the same
+  // call sites as the delivery entitlements above.
+  delivery_reconciliation_enabled?: boolean;
   // Advanced Analytics entitlement (migration 0047) -- Commercial V1 tier
   // gate (NextGen Complete and above), same "platform decision, not a
   // tenant toggle, SUPER_ADMIN-only" rationale as the delivery entitlements
@@ -274,6 +292,7 @@ export type OnboardingBusinessUpdate = Pick<
   | "delivery_platforms_enabled"
   | "uber_eats_enabled"
   | "mrd_enabled"
+  | "delivery_reconciliation_enabled"
   | "advanced_analytics_enabled"
   | "loyalty_enabled"
 >;
