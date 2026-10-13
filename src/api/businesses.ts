@@ -27,13 +27,18 @@ import type {
 } from "@/types/business";
 
 export const businessesApi = {
-  list(params?: { is_active?: boolean | null; page?: number; per_page?: number }): Promise<Business[]> {
+  list(params?: { is_active?: boolean | null; page?: number; per_page?: number; search?: string }): Promise<Business[]> {
     const q = new URLSearchParams();
     if (params?.is_active !== undefined && params.is_active !== null) {
       q.set("is_active", String(params.is_active));
     }
     if (params?.page) q.set("page", String(params.page));
     if (params?.per_page) q.set("per_page", String(params.per_page));
+    // Server-side substring match (name/slug/business_code), applied before
+    // pagination -- see admin_api routes_businesses.py::list_businesses.
+    // Without this, a business not on the currently-fetched page was
+    // unfindable by the old client-side-only search (KNOWN_BUGS.md).
+    if (params?.search) q.set("search", params.search);
     const qs = q.toString();
     return apiClient.get<Business[]>(`/v1/admin/admin/businesses${qs ? `?${qs}` : ""}`);
   },

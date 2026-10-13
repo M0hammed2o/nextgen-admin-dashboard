@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { businessesApi } from "@/api/businesses";
 import type { Business } from "@/types/business";
@@ -32,28 +32,38 @@ export default function BusinessesPage() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Debounced server-side search term actually sent to the API. Querying the
+  // backend (rather than filtering only the one already-fetched page
+  // client-side, as this used to do) is required for a business to be
+  // findable at all once it's not on the currently-viewed page -- e.g. a
+  // business whose row is old (created while its onboarding was still in
+  // progress) but was pushed past page 1 of the default created_at-sorted
+  // list by newer businesses since. See KNOWN_BUGS.md.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      // Batched into the same tick as the debounced term itself -- a new
+      // search always restarts at page 1 (staying on whatever page the
+      // previous, differently-filtered result set happened to be on would
+      // silently show nothing instead of actual search results).
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const fetchBusinesses = () => {
     setLoading(true);
     setError("");
     const isActive = filter === "active" ? true : filter === "suspended" ? false : null;
-    businessesApi.list({ is_active: isActive, page, per_page: perPage })
+    businessesApi.list({ is_active: isActive, page, per_page: perPage, search: debouncedSearch || undefined })
       .then(setBusinesses)
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load businesses"))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchBusinesses(); }, [filter, page, perPage]);
-
-  const filtered = useMemo(() => {
-    if (!search) return businesses;
-    const s = search.toLowerCase();
-    return businesses.filter(
-      (b) =>
-        b.name.toLowerCase().includes(s) ||
-        b.slug.toLowerCase().includes(s) ||
-        b.business_code.toLowerCase().includes(s)
-    );
-  }, [businesses, search]);
+  useEffect(() => { fetchBusinesses(); }, [filter, page, perPage, debouncedSearch]);
 
   const filters: { label: string; value: Filter }[] = [
     { label: "All", value: "all" },
@@ -117,7 +127,7 @@ export default function BusinessesPage() {
                     <Button variant="outline" size="sm" onClick={fetchBusinesses}>Retry</Button>
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : businesses.length === 0 ? (
                 <tr>
                   <td colSpan={8}>
                     <EmptyState
@@ -129,7 +139,7 @@ export default function BusinessesPage() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((b) => (
+                businesses.map((b) => (
                   <tr key={b.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-medium max-w-[200px] truncate">{b.name}</td>
                     <td className="px-4 py-3 font-mono text-xs">{b.business_code}</td>
@@ -189,11 +199,11 @@ export default function BusinessesPage() {
             </select>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => setPage(page - 1)}>
+            <Button aria-label="Previous page" variant="ghost" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => setPage(page - 1)}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="text-sm text-muted-foreground px-2">Page {page}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={filtered.length < perPage} onClick={() => setPage(page + 1)}>
+            <Button aria-label="Next page" variant="ghost" size="icon" className="h-8 w-8" disabled={businesses.length < perPage} onClick={() => setPage(page + 1)}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
