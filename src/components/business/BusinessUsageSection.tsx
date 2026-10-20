@@ -75,17 +75,31 @@ export function BusinessUsageSection({ businessId }: Props) {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-muted-foreground">Orders Used</p>
-              <p className="text-xl font-bold">
-                {formatNumber(summary.orders_used)} / {formatNumber(summary.orders_allowance)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {formatNumber(summary.orders_remaining)} remaining ({Math.round(summary.pct_used)}% used)
-              </p>
+              <p className="text-xs text-muted-foreground">WhatsApp Orders Used</p>
+              {summary.whatsapp_orders_allowance === null ? (
+                <>
+                  <p className="text-xl font-bold">{formatNumber(summary.whatsapp_orders_used)}</p>
+                  <p className="text-xs text-muted-foreground">No allowance configured for this business</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xl font-bold">
+                    {formatNumber(summary.whatsapp_orders_used)} / {formatNumber(summary.whatsapp_orders_allowance)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatNumber(summary.whatsapp_orders_remaining ?? 0)} remaining (
+                    {Math.round(summary.whatsapp_orders_pct_used ?? 0)}% used)
+                  </p>
+                </>
+              )}
             </div>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${TIER_BADGE[summary.tier]}`}>
-              {TIER_LABEL[summary.tier]}
-            </span>
+            {summary.whatsapp_orders_tier && (
+              <span
+                className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${TIER_BADGE[summary.whatsapp_orders_tier]}`}
+              >
+                {TIER_LABEL[summary.whatsapp_orders_tier]}
+              </span>
+            )}
           </div>
 
           <hr className="border-border" />
@@ -118,10 +132,7 @@ export function BusinessUsageSection({ businessId }: Props) {
               <p className="text-sm font-semibold text-muted-foreground">Not tracked</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Meta's own WhatsApp messaging cost isn't tracked in this system -- the figure above is deliberately
-            never fabricated.
-          </p>
+          <p className="text-xs text-muted-foreground">{summary.whatsapp_messaging_cost_note}</p>
         </div>
       ) : null}
     </div>

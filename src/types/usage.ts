@@ -15,23 +15,36 @@ export interface UsageRecord {
 
 export type UsageTier = "ok" | "warning_80" | "warning_90" | "exceeded";
 
-// GET /admin/businesses/{id}/usage. `whatsapp_messaging_cost_rand` is
-// deliberately `null` in every real response -- Meta's own per-message
-// messaging cost isn't tracked anywhere in this system. Never compute or
-// display a substitute number for it; render the accompanying note instead
-// (see BusinessUsageSection).
+// GET /admin/businesses/{id}/usage. Reconciled 2026-10-20 against the real
+// backend response (admin_api/app/api/v1/routes_businesses.py::
+// BusinessUsageResponse) -- the earlier version of this type used
+// orders_used/orders_allowance/pct_used/tier (bare), which don't exist on
+// the real response (it's whatsapp_orders_used/whatsapp_orders_allowance/
+// etc., all `whatsapp_`-prefixed) and rendered "NaN / NaN" in production
+// (BUG-0149, found via real browser testing). The allowance-related fields
+// are nullable: a business with no `whatsapp_order_allowance` configured
+// gets `null` for all four, NOT zero -- BusinessUsageSection must render a
+// "no allowance configured" state for that case, never NaN or 0%.
+// `whatsapp_messaging_cost_rand` is deliberately always `null` -- Meta's
+// own per-message messaging cost isn't tracked anywhere in this system.
+// Never compute or display a substitute number for it; render
+// `whatsapp_messaging_cost_note` instead.
 export interface BusinessUsageSummary {
-  orders_used: number;
-  orders_allowance: number;
-  orders_remaining: number;
-  pct_used: number;
-  tier: UsageTier;
+  business_id: string;
+  period_start: string;
+  whatsapp_orders_used: number;
+  whatsapp_orders_total_all_statuses: number;
+  whatsapp_orders_allowance: number | null;
+  whatsapp_orders_remaining: number | null;
+  whatsapp_orders_pct_used: number | null;
+  whatsapp_orders_tier: UsageTier | null;
   ai_llm_calls: number;
   ai_llm_tokens: number;
   ai_llm_cost_cents: number;
   whatsapp_inbound_messages: number;
   whatsapp_outbound_messages: number;
   whatsapp_messaging_cost_rand: null;
+  whatsapp_messaging_cost_note: string;
 }
 
 // GET /admin/usage-alerts. Reconciled 2026-10-20 against the real backend
