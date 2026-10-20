@@ -10,9 +10,10 @@ export const usageApi = {
     return apiClient.get<UsageRecord[]>(`/v1/admin/admin/usage?${q.toString()}`);
   },
 
-  // GET /admin/usage-alerts (see types/usage.ts's UsageAlert comment for the
-  // contract-assumption note). SUPER_ADMIN-only -- every call site for this
-  // lives on DashboardPage, only reachable for SUPER_ADMIN via HomeRoute.
+  // GET /admin/usage-alerts -- reconciled 2026-10-20 against the real
+  // backend response (see types/usage.ts's UsageAlert comment). SUPER_
+  // ADMIN-only -- every call site for this lives on DashboardPage, only
+  // reachable for SUPER_ADMIN via HomeRoute.
   getAlerts(): Promise<UsageAlert[]> {
     return apiClient.get<UsageAlert[]>("/v1/admin/admin/usage-alerts");
   },

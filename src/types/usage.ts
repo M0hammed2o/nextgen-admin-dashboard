@@ -34,15 +34,37 @@ export interface BusinessUsageSummary {
   whatsapp_messaging_cost_rand: null;
 }
 
-// GET /admin/usage-alerts. Exact shape is an ASSUMPTION beyond what the task
-// brief specified ("a list of businesses that have newly crossed an
-// 80/90/100% usage threshold this billing period") -- business_id/name/tier/
-// pct_used are the minimum fields a visible alert list needs; reconcile
-// against the real backend response once that branch lands (flagged in this
-// task's final report rather than guessed at silently).
+// GET /admin/usage-alerts. Reconciled 2026-10-20 against the real backend
+// response (admin_api/app/api/v1/routes_usage.py::UsageAlertResponse) --
+// one row per (business, billing period, threshold crossed), so a single
+// business can have MULTIPLE rows in the same period (e.g. both 80% and
+// 90% recorded separately, confirmed by the backend's own integration
+// test). tier/pct_used are NOT returned by the API -- the backend
+// deliberately derives neither server-side twice (once here, once in
+// get_whatsapp_order_usage) to avoid the two ever disagreeing. Compute
+// them client-side via deriveAlertTier()/derivePctUsed() below instead of
+// expecting them on the object.
 export interface UsageAlert {
+  id: string;
   business_id: string;
   business_name: string;
-  tier: UsageTier;
-  pct_used: number;
+  billing_period_started_at: string;
+  threshold_crossed: number;
+  orders_used: number;
+  orders_allowance: number;
+  created_at: string;
+}
+
+/** threshold_crossed is always exactly 80, 90, or 100 per the backend's own
+ * column comment -- this is a direct mapping, not a range check. */
+export function deriveAlertTier(thresholdCrossed: number): UsageTier {
+  if (thresholdCrossed >= 100) return "exceeded";
+  if (thresholdCrossed >= 90) return "warning_90";
+  if (thresholdCrossed >= 80) return "warning_80";
+  return "ok";
+}
+
+export function derivePctUsed(alert: UsageAlert): number {
+  if (alert.orders_allowance <= 0) return 0;
+  return (alert.orders_used / alert.orders_allowance) * 100;
 }

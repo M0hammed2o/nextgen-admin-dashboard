@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { businessesApi } from "@/api/businesses";
 import { usageApi } from "@/api/usage";
 import type { Business } from "@/types/business";
-import type { UsageAlert, UsageTier } from "@/types/usage";
+import { deriveAlertTier, derivePctUsed, type UsageAlert, type UsageTier } from "@/types/usage";
 import { Building2, CheckCircle2, XCircle, Plus, BarChart3, ScrollText, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
@@ -52,6 +52,22 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<UsageAlert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [alertsError, setAlertsError] = useState("");
+
+  // A business can have MULTIPLE alert rows in the same billing period --
+  // 80% and 90% are recorded as separate rows, not updated in place (see
+  // UsageAlert's own doc comment). Collapse to one row per business, the
+  // highest threshold crossed, so this widget shows current status rather
+  // than a flat log of every threshold ever crossed this period.
+  const latestAlertPerBusiness = useMemo(() => {
+    const byBusiness = new Map<string, UsageAlert>();
+    for (const a of alerts) {
+      const existing = byBusiness.get(a.business_id);
+      if (!existing || a.threshold_crossed > existing.threshold_crossed) {
+        byBusiness.set(a.business_id, a);
+      }
+    }
+    return Array.from(byBusiness.values()).sort((a, b) => b.threshold_crossed - a.threshold_crossed);
+  }, [alerts]);
 
   const fetchBusinesses = () => {
     setLoading(true);
@@ -110,9 +126,9 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 mb-3">
           <AlertTriangle className="w-4 h-4 text-warning" />
           <h2 className="text-sm font-semibold">Usage Alerts</h2>
-          {alerts.length > 0 && (
+          {latestAlertPerBusiness.length > 0 && (
             <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-warning/10 text-warning">
-              {alerts.length}
+              {latestAlertPerBusiness.length}
             </span>
           )}
         </div>
@@ -123,7 +139,7 @@ export default function DashboardPage() {
             <p className="text-sm text-destructive mb-2">{alertsError}</p>
             <Button variant="outline" size="sm" onClick={fetchAlerts}>Retry</Button>
           </div>
-        ) : alerts.length === 0 ? (
+        ) : latestAlertPerBusiness.length === 0 ? (
           <EmptyState
             icon={CheckCircle2}
             title="No businesses have crossed a usage threshold this billing period."
@@ -131,18 +147,21 @@ export default function DashboardPage() {
           />
         ) : (
           <div className="space-y-2">
-            {alerts.map((a) => (
-              <button
-                key={a.business_id}
-                onClick={() => navigate(`/businesses/${a.business_id}`)}
-                className="flex items-center justify-between w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors"
-              >
-                <span className="text-sm font-medium">{a.business_name}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ALERT_TIER_BADGE[a.tier]}`}>
-                  {ALERT_TIER_LABEL[a.tier]} ({Math.round(a.pct_used)}%)
-                </span>
-              </button>
-            ))}
+            {latestAlertPerBusiness.map((a) => {
+              const tier = deriveAlertTier(a.threshold_crossed);
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => navigate(`/businesses/${a.business_id}`)}
+                  className="flex items-center justify-between w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <span className="text-sm font-medium">{a.business_name}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ALERT_TIER_BADGE[tier]}`}>
+                    {ALERT_TIER_LABEL[tier]} ({Math.round(derivePctUsed(a))}%)
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
