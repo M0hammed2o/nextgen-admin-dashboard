@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlanSelect } from "@/components/modals/PlanSelect";
 import { ModuleTogglesFieldset } from "@/components/modals/ModuleTogglesFieldset";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 interface Props {
@@ -38,6 +39,13 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
   // Module switches: see ModuleTogglesFieldset -- a key only appears here
   // once the admin explicitly chooses On/Off for it; "Leave" removes the key.
   const [moduleChanges, setModuleChanges] = useState<Partial<Record<ModuleFlagKey, boolean>>>({});
+  // pos_enabled is deliberately NOT a ModuleFlagKey/MODULE_FLAGS entry (see
+  // types/business.ts's comment) -- that array is also rendered, locked but
+  // visible, on ONBOARDER-reachable onboarding pages, and this flag must
+  // never appear there even in locked form. Its current value is always
+  // known (unlike a brand-new module flag with no "current" yet), so this
+  // is a plain controlled Switch, not the tri-state Leave/On/Off control.
+  const [posEnabled, setPosEnabled] = useState(business.pos_enabled);
 
   const set = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -68,7 +76,7 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
       // are required, non-nullable columns, and blanking those is a separate,
       // pre-existing form-validation concern this fix isn't meant to touch.
       const nullableKeys = ["whatsapp_phone_number_id", "stripe_customer_id", "stripe_subscription_id"] as const;
-      const payload: Record<string, string | null | boolean> = { ...form, ...moduleChanges };
+      const payload: Record<string, string | null | boolean> = { ...form, ...moduleChanges, pos_enabled: posEnabled };
       for (const key of nullableKeys) {
         if (payload[key] === "") payload[key] = null;
       }
@@ -104,6 +112,23 @@ export function EditBusinessModal({ open, onClose, business, onSuccess }: Props)
           <div className="space-y-1.5">
             <Label>Plan</Label>
             <PlanSelect value={form.plan} onChange={(v) => set("plan", v)} />
+          </div>
+
+          <hr className="border-border" />
+          {/* pos_enabled -- SUPER_ADMIN only (this whole modal is only
+              reachable via /businesses/:id, RoleRoute-gated to SUPER_ADMIN).
+              Kept deliberately outside ModuleTogglesFieldset -- see the
+              posEnabled state comment above. */}
+          <div className="flex items-start justify-between gap-3 py-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">POS (In-Person Ordering)</p>
+              <p className="text-xs text-muted-foreground">
+                Lets this business use the staff till/kitchen POS ordering flow. Turn this off for a
+                WhatsApp-only subscription (no POS) -- pair with Plan = WHATSAPP_ONLY.
+              </p>
+              <p className="text-xs text-warning mt-0.5">Only a NextGen super admin can change this.</p>
+            </div>
+            <Switch checked={posEnabled} onCheckedChange={setPosEnabled} aria-label="POS (In-Person Ordering)" className="mt-0.5 shrink-0" />
           </div>
 
           <hr className="border-border" />

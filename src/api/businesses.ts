@@ -25,6 +25,7 @@ import type {
   OnboardingConfirmRequest,
   OnboardingConfirmResponse,
 } from "@/types/business";
+import type { BusinessUsageSummary } from "@/types/usage";
 
 export const businessesApi = {
   list(params?: { is_active?: boolean | null; page?: number; per_page?: number; search?: string }): Promise<Business[]> {
@@ -85,6 +86,16 @@ export const businessesApi = {
 
   whatsappTestSend(id: string, data: WhatsAppTestRequest): Promise<WhatsAppTestResponse> {
     return apiClient.post<WhatsAppTestResponse>(`/v1/admin/admin/businesses/${id}/whatsapp/test-send`, data);
+  },
+
+  // GET /admin/businesses/{id}/usage (see types/usage.ts's BusinessUsageSummary
+  // comment for the contract-assumption note -- parallel backend branch, not
+  // yet landed as of 2026-10-20). SUPER_ADMIN-only: this method's only call
+  // site, BusinessUsageSection, renders solely on /businesses/:id
+  // (RoleRoute-gated to SUPER_ADMIN in App.tsx). Never give an ONBOARDER
+  // access to this -- it includes another business's AI cost data.
+  getUsageSummary(id: string): Promise<BusinessUsageSummary> {
+    return apiClient.get<BusinessUsageSummary>(`/v1/admin/admin/businesses/${id}/usage`);
   },
 
   // ── Onboarding-scoped variants ──────────────────────────────────────────

@@ -79,6 +79,24 @@ export interface Business {
   staff_stocktake_tab_enabled: boolean;
   onboarded_by_admin_id: string | null;
   onboarding_completed_at: string | null;
+  // ── POS entitlement (WhatsApp-only subscription support) ────────────────
+  // Backend contract (parallel branch, not yet landed as of 2026-10-20 --
+  // see WORKLOG.md): `pos_enabled: boolean` added to BusinessCreate/
+  // BusinessUpdate and the admin business response schemas,
+  // SUPER_ADMIN-writable only -- explicitly NOT in
+  // ONBOARDER_PATCH_ALLOWED_FIELDS, and deliberately NOT added to
+  // OnboardingBusiness/OnboardingBusinessUpdate/
+  // CreateOnboardingBusinessRequest below, or to lib/modules.ts's
+  // MODULE_FLAGS (that array is also rendered, locked-but-visible, on
+  // ONBOARDER-reachable onboarding pages -- see ModuleTogglesFieldset's own
+  // doc comment). This field must be structurally unreachable from any
+  // ONBOARDER-visible type or component, not just role-gated at render time,
+  // per this feature's explicit requirement that an ONBOARDER must never
+  // see this even for a business they themselves onboarded. Rendered/edited
+  // only in BusinessDetailsPage/EditBusinessModal/CreateBusinessModal, all
+  // reachable solely via /businesses and /businesses/:id (RoleRoute-gated to
+  // SUPER_ADMIN in App.tsx).
+  pos_enabled: boolean;
 }
 
 export interface CreateBusinessRequest {
@@ -97,6 +115,11 @@ export interface CreateBusinessRequest {
   // (the default server-side too). When false, the business is created
   // ACTIVE with no trial -- for a client invoiced/paying from day one.
   start_trial?: boolean;
+  // See the Business interface's `pos_enabled` comment above. Unlike the
+  // MODULE_FLAGS module switches, BusinessCreate accepts this directly per
+  // the backend contract, so CreateBusinessModal sends it as part of the
+  // create payload itself rather than a follow-up PATCH.
+  pos_enabled?: boolean;
 }
 
 // The subset of BusinessCreate fields an ONBOARDER may send (see
@@ -249,6 +272,12 @@ export interface UpdateBusinessRequest {
   staff_live_orders_tab_enabled?: boolean;
   staff_wastage_tab_enabled?: boolean;
   staff_stocktake_tab_enabled?: boolean;
+  // See the Business interface's `pos_enabled` comment above. SUPER_ADMIN
+  // only -- settable from EditBusinessModal, which is only reachable via
+  // /businesses/:id (RoleRoute-gated to SUPER_ADMIN). Deliberately NOT part
+  // of OnboardingBusinessUpdate below, so an ONBOARDER-reachable PATCH can
+  // never include it even by accident.
+  pos_enabled?: boolean;
 }
 
 // The full set of fields the onboarding workspace's "Restaurant, Plan &

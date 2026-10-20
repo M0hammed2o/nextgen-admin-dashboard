@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Edit, Ban, Unlock, Gauge, UserPlus, MessageSquare, FileDown, ExternalLink, KeyRound, PackagePlus } from "lucide-react";
+import { BusinessUsageSection } from "@/components/business/BusinessUsageSection";
 import { EditBusinessModal } from "@/components/modals/EditBusinessModal";
 import { SuspendModal } from "@/components/modals/SuspendModal";
 import { UnsuspendModal } from "@/components/modals/UnsuspendModal";
@@ -210,6 +211,48 @@ export default function BusinessDetailsPage() {
           <InfoRow label="Orders Used" value={business.monthly_orders_used} />
           <InfoRow label="Orders Remaining" value={business.monthly_orders_remaining} />
         </div>
+
+        {/* "What this business is actually subscribed to" -- plan, POS
+            entitlement, and WhatsApp entitlement shown together per this
+            feature's brief. pos_enabled also appears in the Modules section's
+            underlying data model, but is NOT rendered via MODULE_FLAGS/
+            ModuleTogglesFieldset (see types/business.ts's comment) -- this
+            card and the Edit modal's dedicated toggle below are its only two
+            render points, both solely on this SUPER_ADMIN-gated page. */}
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold mb-3">Subscription</h3>
+          <InfoRow
+            label="Plan"
+            value={
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
+                {business.plan}
+              </span>
+            }
+          />
+          <InfoRow
+            label="WhatsApp Ordering"
+            value={
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${business.is_whatsapp_enabled ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                {business.is_whatsapp_enabled ? "On" : "Off"}
+              </span>
+            }
+          />
+          <InfoRow
+            label="POS (In-Person Ordering)"
+            value={
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${business.pos_enabled ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                {business.pos_enabled ? "On" : "Off"}
+              </span>
+            }
+          />
+          {business.plan === "WHATSAPP_ONLY" && business.pos_enabled && (
+            <p className="text-xs text-warning mt-2">
+              This business is on the WhatsApp-only plan but POS is still enabled -- double check this is intended.
+            </p>
+          )}
+        </div>
+
+        <BusinessUsageSection businessId={business.id} />
 
         <div className="bg-card border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold mb-3">WhatsApp</h3>
