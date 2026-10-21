@@ -101,6 +101,7 @@ describe("BusinessesPage search", () => {
     staff_stocktake_tab_enabled: false,
     onboarded_by_admin_id: null,
     onboarding_completed_at: null,
+    pos_enabled: true,
   };
 
   // The actual business the owner is looking for -- its row is OLDER than

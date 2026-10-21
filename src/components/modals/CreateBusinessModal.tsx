@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { PlanSelect } from "@/components/modals/PlanSelect";
 import { ModuleTogglesFieldset } from "@/components/modals/ModuleTogglesFieldset";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 interface Props {
@@ -39,6 +40,13 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
     owner_full_name: "",
   });
   const [startTrial, setStartTrial] = useState(true);
+  // Defaults to true (POS included) to match the normal restaurant
+  // onboarding flow -- a super admin selling the WhatsApp-only package
+  // turns this off explicitly, pairing it with Plan = WHATSAPP_ONLY.
+  // SUPER_ADMIN only; this whole modal is only reachable via /businesses,
+  // RoleRoute-gated to SUPER_ADMIN. Kept outside ModuleTogglesFieldset -- see
+  // types/business.ts's `pos_enabled` comment for why.
+  const [posEnabled, setPosEnabled] = useState(true);
   const [slugManual, setSlugManual] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createdOwnerPassword, setCreatedOwnerPassword] = useState<string | null>(null);
@@ -92,6 +100,7 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
     setStartTrial(true);
     setSlugManual(false);
     setModuleChanges({});
+    setPosEnabled(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,8 +108,16 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
     if (!validate()) return;
     setLoading(true);
     try {
-      // Send slug only if non-empty, else backend auto-generates
-      const payload: typeof form & { start_trial: boolean } = { ...form, start_trial: startTrial };
+      // Send slug only if non-empty, else backend auto-generates.
+      // pos_enabled is sent directly here (unlike moduleChanges below) --
+      // per the backend contract, BusinessCreate accepts it on this same
+      // request, so it doesn't need the follow-up-PATCH treatment module
+      // flags require.
+      const payload: typeof form & { start_trial: boolean; pos_enabled: boolean } = {
+        ...form,
+        start_trial: startTrial,
+        pos_enabled: posEnabled,
+      };
       if (!payload.slug.trim()) delete (payload as Record<string, unknown>).slug;
       const biz = await businessesApi.create(payload);
 
@@ -239,6 +256,19 @@ export function CreateBusinessModal({ open, onClose, onSuccess }: Props) {
               <Label>Order Limit</Label>
               <Input type="number" value={form.daily_order_limit} onChange={(e) => set("daily_order_limit", Number(e.target.value))} />
             </div>
+          </div>
+
+          <hr className="border-border" />
+          <div className="flex items-start justify-between gap-3 py-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">POS (In-Person Ordering)</p>
+              <p className="text-xs text-muted-foreground">
+                Lets this business use the staff till/kitchen POS ordering flow. Turn this off for a
+                WhatsApp-only subscription (no POS) -- pair with Plan = WHATSAPP_ONLY.
+              </p>
+              <p className="text-xs text-warning mt-0.5">Only a NextGen super admin can change this.</p>
+            </div>
+            <Switch checked={posEnabled} onCheckedChange={setPosEnabled} aria-label="POS (In-Person Ordering)" className="mt-0.5 shrink-0" />
           </div>
 
           <hr className="border-border" />
