@@ -14,6 +14,8 @@ import BusinessDetailsPage from "./pages/BusinessDetailsPage";
 import SalesDashboardPage from "./pages/SalesDashboardPage";
 import SalesClientsPage from "./pages/SalesClientsPage";
 import SalesClientPage from "./pages/SalesClientPage";
+import EventsPage from "./pages/EventsPage";
+import EventDetailPage from "./pages/EventDetailPage";
 import OnboardingListPage from "./pages/OnboardingListPage";
 import OnboardingWorkspacePage from "./pages/OnboardingWorkspacePage";
 import AdminUsersPage from "./pages/AdminUsersPage";
@@ -48,6 +50,8 @@ const App = () => (
             <Route path="/sales/clients/:id" element={<SalesClientPage />} />
             <Route path="/businesses" element={<RoleRoute roles={["SUPER_ADMIN"]}><BusinessesPage /></RoleRoute>} />
             <Route path="/businesses/:id" element={<RoleRoute roles={["SUPER_ADMIN"]}><BusinessDetailsPage /></RoleRoute>} />
+            <Route path="/events" element={<RoleRoute roles={["SUPER_ADMIN"]}><EventsPage /></RoleRoute>} />
+            <Route path="/events/:id" element={<RoleRoute roles={["SUPER_ADMIN"]}><EventDetailPage /></RoleRoute>} />
             <Route path="/onboarding" element={<OnboardingListPage />} />
             <Route path="/onboarding/:id" element={<OnboardingWorkspacePage />} />
             <Route path="/admin-users" element={<RoleRoute roles={["SUPER_ADMIN"]}><AdminUsersPage /></RoleRoute>} />

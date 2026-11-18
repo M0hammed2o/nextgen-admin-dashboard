@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, Mail, BarChart3, ScrollText, ExternalLink,
-  ClipboardCheck, ShieldCheck, DollarSign, type LucideIcon,
+  ClipboardCheck, ShieldCheck, DollarSign, CalendarDays, type LucideIcon,
 } from "lucide-react";
 import type { AdminRole } from "@/types/auth";
 
@@ -33,6 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
   // deliberately not SUPER_ADMIN-only.
   { title: "Sales", path: "/sales", icon: DollarSign },
   { title: "Businesses", path: "/businesses", icon: Building2, roles: ["SUPER_ADMIN"] },
+  { title: "Events", path: "/events", icon: CalendarDays, roles: ["SUPER_ADMIN"] },
   { title: "Onboarding", path: "/onboarding", icon: ClipboardCheck },
   { title: "AI Emails", path: "/ai-emails", icon: Mail, roles: ["SUPER_ADMIN"] },
   { title: "Usage", path: "/usage", icon: BarChart3, roles: ["SUPER_ADMIN"] },
@@ -67,6 +68,7 @@ export const PAGE_TITLES: Record<string, string> = {
   "/sales": "Sales Dashboard",
   "/sales/clients": "Clients",
   "/businesses": "Businesses",
+  "/events": "Events",
   "/onboarding": "Onboarding",
   "/ai-emails": "AI Emails",
   "/ai-emails/leads": "Leads",
@@ -81,6 +83,7 @@ export const PAGE_TITLES: Record<string, string> = {
 // would be titled "AI Emails".
 const PAGE_TITLE_PREFIXES: ReadonlyArray<readonly [string, string]> = [
   ["/businesses/", "Business Details"],
+  ["/events/", "Event Details"],
   ["/onboarding/", "Onboarding Workspace"],
   ["/sales/clients/", "Client"],
   ["/ai-emails/leads/", "Lead"],
