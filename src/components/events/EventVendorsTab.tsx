@@ -66,6 +66,12 @@ function SubscriptionRow({ sub, onPay, onVoid }: { sub: EventSubscription; onPay
         {sub.starts_on} to {sub.ends_on}, {sub.billable_days} billable day{sub.billable_days === 1 ? "" : "s"},{" "}
         <strong>{formatRands(sub.amount_cents)}</strong>{" "}
         <span className="text-xs px-1.5 py-0.5 rounded bg-muted">{sub.status}</span>
+        {sub.status === "UNPAID" && sub.payment_claim_reference && (
+          <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700">
+            Claimed: {sub.payment_claim_reference}
+            {sub.payment_claimed_at ? ` (${new Date(sub.payment_claimed_at).toLocaleString()})` : ""}
+          </span>
+        )}
       </span>
       <span className="flex gap-1">
         {sub.status === "UNPAID" && (
@@ -90,6 +96,7 @@ export function EventVendorsTab({ event }: { event: EventDetail }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog_>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [claimsOnly, setClaimsOnly] = useState(false);
 
   // Debounce the search term; a new search always restarts at the first page.
   useEffect(() => {
@@ -119,9 +126,13 @@ export function EventVendorsTab({ event }: { event: EventDetail }) {
   });
 
   const total = data?.total ?? 0;
-  const items = data?.items ?? [];
+  const allItems = data?.items ?? [];
+  // Client-side over the current page only: the API has no claim filter.
+  const items = claimsOnly
+    ? allItems.filter((v) => v.subscriptions.some((s) => s.status === "UNPAID" && s.payment_claim_reference))
+    : allItems;
   const lastPage = Math.max(0, Math.ceil(total / VENDOR_PAGE_SIZE) - 1);
-  const filtered = !!(status || category || q);
+  const filtered = !!(status || category || q || claimsOnly);
 
   return (
     <div className="space-y-4">
@@ -147,6 +158,10 @@ export function EventVendorsTab({ event }: { event: EventDetail }) {
               <option value="CLOTHING">Clothing</option>
             </NativeSelect>
           </div>
+          <label className="flex items-center gap-1.5 text-sm h-9">
+            <input type="checkbox" checked={claimsOnly} onChange={(e) => setClaimsOnly(e.target.checked)} />
+            Has unconfirmed claim (this page)
+          </label>
         </div>
         <Button onClick={() => setBulkOpen(true)} className="gap-1.5" disabled={event.status === "CANCELLED"}>
           <Upload className="w-4 h-4" /> Onboard vendors
@@ -363,7 +378,7 @@ function QuoteDialog({ eventId, vendor, event, onClose, onDone }: { eventId: str
 }
 
 function MarkPaidDialog({ eventId, vendor, sub, onClose, onDone }: { eventId: string; vendor: EventVendorItem; sub: EventSubscription; onClose: () => void; onDone: () => void }) {
-  const [ref, setRef] = useState("");
+  const [ref, setRef] = useState(sub.payment_claim_reference ?? "");
   const [error, setError] = useState("");
   const mut = useMutation({
     mutationFn: () => eventsApi.markPaid(eventId, sub.id, ref.trim()),

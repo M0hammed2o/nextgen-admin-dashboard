@@ -29,6 +29,8 @@ export interface EventDetail extends EventSummary {
   active_vendors: number;
   revenue_paid_cents: number;
   revenue_outstanding_cents: number;
+  registration_open?: boolean;
+  has_registration_code?: boolean;
   prep_days?: number; // NEW (backend PATCH work); default 14 when absent
   notes?: string | null; // not returned by GET today; edited write-only
 }
@@ -58,6 +60,8 @@ export interface EventSubscription {
   amount_cents: number;
   status: SubscriptionStatus;
   paid_at: string | null;
+  payment_claim_reference?: string | null;
+  payment_claimed_at?: string | null;
 }
 
 export interface EventVendorItem {
@@ -126,4 +130,11 @@ export interface EventRevenue {
   outstanding_cents: number;
   by_category: Record<string, { paid_cents: number; outstanding_cents: number; vendors: number }>;
   by_day: { day: string; vendors_covered: number; paid_cents_attributed: number }[];
+}
+
+export interface RegistrationUpdateResponse {
+  registration_open: boolean;
+  has_registration_code: boolean;
+  /** Plaintext, ABCD-EFGH. Returned ONLY when newly generated; never persist it. */
+  registration_code: string | null;
 }

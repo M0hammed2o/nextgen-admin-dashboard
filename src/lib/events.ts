@@ -58,6 +58,8 @@ export function eventErrorMessage(err: unknown, fallback: string): string {
       return "This subscription is already paid under a different reference.";
     case "SUBSCRIPTION_VOID":
       return "A void subscription cannot be paid.";
+    case "OVERLAPS_EXISTING":
+      return "This vendor already has a subscription covering some of those days. Void the existing one or pick dates that do not overlap.";
     case "STALL_TAKEN":
       return "That stall is already allocated to another vendor at this event.";
     case "PAID_DAY_REMOVED":

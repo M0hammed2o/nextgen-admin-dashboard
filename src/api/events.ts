@@ -8,6 +8,7 @@ import type {
   EventRevenue,
   EventStatus,
   EventSummary,
+  RegistrationUpdateResponse,
   UpdateEventRequest,
   VendorListParams,
   VendorListResponse,
@@ -37,6 +38,9 @@ export const eventsApi = {
   },
   replaceCalendar(id: string, days: EventDay[]): Promise<EventDetail> {
     return apiClient.put<EventDetail>(`${BASE}/${id}/calendar`, { days });
+  },
+  setRegistration(id: string, open: boolean, rotateCode: boolean): Promise<RegistrationUpdateResponse> {
+    return apiClient.post<RegistrationUpdateResponse>(`${BASE}/${id}/registration`, { open, rotate_code: rotateCode });
   },
   async listVendors(id: string, p: VendorListParams): Promise<VendorListResponse> {
     const q = new URLSearchParams();

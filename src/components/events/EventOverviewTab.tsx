@@ -11,6 +11,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { EventStatusBadge } from "./fields";
+import { EventRegistrationSection } from "./EventRegistrationSection";
 import { eventErrorMessage, formatRands } from "@/lib/events";
 import { toast } from "sonner";
 
@@ -105,6 +106,8 @@ export function EventOverviewTab({ event }: { event: EventDetail }) {
           ))}
         </div>
       </section>
+
+      <EventRegistrationSection event={event} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Paid" value={formatRands(event.revenue_paid_cents)} hint="VAT-inclusive" />

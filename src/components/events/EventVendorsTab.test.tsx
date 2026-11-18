@@ -149,4 +149,43 @@ describe("EventVendorsTab", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Cancel vendor" }).pop()!);
     await waitFor(() => expect(eventsApi.cancelVendor).toHaveBeenCalledWith("ev-1", "v-1"));
   });
+
+  const claimed = {
+    ...vendorFixture,
+    subscriptions: [{ ...vendorFixture.subscriptions[0], payment_claim_reference: "EFT-CLAIM-9", payment_claimed_at: "2026-11-01T10:00:00Z" }],
+  };
+
+  it("shows a claim badge on unpaid subscriptions and prefills the mark-paid reference (editable)", async () => {
+    list.mockResolvedValue({ items: [claimed], total: 1 });
+    vi.mocked(eventsApi.markPaid).mockResolvedValue({ id: "s-1", status: "PAID" });
+    renderWithProviders(<EventVendorsTab event={eventFixture} />);
+    await screen.findByText("Tasty Bites");
+    fireEvent.click(screen.getByRole("button", { name: "Manage Tasty Bites" }));
+    expect(screen.getByText(/Claimed: EFT-CLAIM-9/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Mark paid" }));
+    const input = screen.getByLabelText("Payment reference") as HTMLInputElement;
+    expect(input.value).toBe("EFT-CLAIM-9");
+    fireEvent.change(input, { target: { value: "EFT-REAL-1" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Mark paid" }).pop()!);
+    await waitFor(() => expect(eventsApi.markPaid).toHaveBeenCalledWith("ev-1", "s-1", "EFT-REAL-1"));
+  });
+
+  it("claim toggle filters the current page to vendors with an unconfirmed claim", async () => {
+    list.mockResolvedValue({ items: [claimed, { ...vendorFixture, vendor_id: "v-2", business_name: "No Claim Co" }], total: 2 });
+    renderWithProviders(<EventVendorsTab event={eventFixture} />);
+    await screen.findByText("No Claim Co");
+    fireEvent.click(screen.getByLabelText(/Has unconfirmed claim/));
+    expect(screen.queryByText("No Claim Co")).not.toBeInTheDocument();
+    expect(screen.getByText("Tasty Bites")).toBeInTheDocument();
+  });
+
+  it("quote: OVERLAPS_EXISTING shows a friendly message", async () => {
+    vi.mocked(eventsApi.quoteSubscription).mockRejectedValue(apiError("overlap", "OVERLAPS_EXISTING"));
+    renderWithProviders(<EventVendorsTab event={eventFixture} />);
+    await screen.findByText("Tasty Bites");
+    fireEvent.click(screen.getByRole("button", { name: "Manage Tasty Bites" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quote subscription" }));
+    fireEvent.click(screen.getByRole("button", { name: "Get quote" }));
+    expect(await screen.findByText(/already has a subscription covering some of those days/)).toBeInTheDocument();
+  });
 });
