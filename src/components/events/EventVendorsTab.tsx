@@ -21,8 +21,10 @@ import { toast } from "sonner";
 export const VENDOR_PAGE_SIZE = 25;
 export const FLAGGED_OFFLINE_DESCRIPTION =
   "Offline sales flagged for review (e.g. synced on an unpaid day, synced late, cashier differs from syncer). The vendor's owner acknowledges them in their dashboard.";
-export const SHARED_CLAIM_WARNING = "Same reference claimed by another vendor — verify before marking paid.";
-const VENDOR_STATUSES = ["PENDING", "ACTIVE", "SUSPENDED", "CANCELLED"];
+export const SHARED_CLAIM_WARNING = "Same reference claimed by another vendor â€” verify before marking paid.";
+// Must match the admin API's status pattern exactly. Suspension is not a vendor
+// status (it is the business being switched off); it has its own filter below.
+export const VENDOR_STATUSES = ["PENDING", "ACTIVE", "UNPAID", "EXPIRED", "CANCELLED"];
 
 type Dialog_ =
   | { kind: "quote"; vendor: EventVendorItem }
@@ -97,6 +99,7 @@ export function EventVendorsTab({ event }: { event: EventDetail }) {
   const qc = useQueryClient();
   const eventId = event.id;
   const [status, setStatus] = useState("");
+  const [suspension, setSuspension] = useState<"" | "suspended" | "not_suspended">("");
   const [category, setCategory] = useState("");
   const [search, setSearch] = useState("");
   const [q, setQ] = useState("");
@@ -114,7 +117,11 @@ export function EventVendorsTab({ event }: { event: EventDetail }) {
     return () => clearTimeout(t);
   }, [search, q]);
 
-  const params = { status: status || undefined, category: category || undefined, q: q || undefined, limit: VENDOR_PAGE_SIZE, offset: page * VENDOR_PAGE_SIZE };
+  const params = {
+    status: status || undefined, category: category || undefined, q: q || undefined,
+    suspended: suspension === "" ? undefined : suspension === "suspended",
+    limit: VENDOR_PAGE_SIZE, offset: page * VENDOR_PAGE_SIZE,
+  };
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["event-vendors", eventId, params],
     queryFn: () => eventsApi.listVendors(eventId, params),
@@ -140,7 +147,7 @@ export function EventVendorsTab({ event }: { event: EventDetail }) {
     ? allItems.filter((v) => v.subscriptions.some((s) => s.status === "UNPAID" && s.payment_claim_reference))
     : allItems;
   const lastPage = Math.max(0, Math.ceil(total / VENDOR_PAGE_SIZE) - 1);
-  const filtered = !!(status || category || q || claimsOnly);
+  const filtered = !!(status || category || q || suspension || claimsOnly);
 
   return (
     <div className="space-y-4">
@@ -156,6 +163,18 @@ export function EventVendorsTab({ event }: { event: EventDetail }) {
             <NativeSelect id="vf-status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }}>
               <option value="">All statuses</option>
               {VENDOR_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </NativeSelect>
+          </div>
+          <div>
+            <Label htmlFor="vf-suspended" className="sr-only">Suspension</Label>
+            <NativeSelect
+              id="vf-suspended"
+              value={suspension}
+              onChange={(e) => { setSuspension(e.target.value as typeof suspension); setPage(0); }}
+            >
+              <option value="">Suspended or not</option>
+              <option value="suspended">Suspended only</option>
+              <option value="not_suspended">Not suspended</option>
             </NativeSelect>
           </div>
           <div>
@@ -278,7 +297,7 @@ function VendorRows(props: {
 }) {
   const { v, eventId, open, onToggle, onDialog, onReinstate, reinstating, onSaved } = props;
   const cancelled = v.status === "CANCELLED";
-  const suspended = !!v.suspended_reason || v.status === "SUSPENDED";
+  const suspended = !!v.suspended_reason;
   return (
     <>
       <tr className="border-b border-border hover:bg-muted/30">

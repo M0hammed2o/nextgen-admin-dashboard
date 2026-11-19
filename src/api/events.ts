@@ -46,6 +46,7 @@ export const eventsApi = {
     const q = new URLSearchParams();
     if (p.status) q.set("status", p.status);
     if (p.category) q.set("category", p.category);
+    if (p.suspended !== undefined) q.set("suspended", String(p.suspended));
     if (p.q) q.set("q", p.q);
     q.set("limit", String(p.limit));
     q.set("offset", String(p.offset));

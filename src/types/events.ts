@@ -84,6 +84,8 @@ export interface VendorListParams {
   status?: string;
   category?: string;
   q?: string;
+  /** Business switched off (admin or event-window suspension); not a vendor status. */
+  suspended?: boolean;
   limit: number;
   offset: number;
 }

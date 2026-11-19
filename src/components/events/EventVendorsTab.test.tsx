@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, waitFor, fireEvent } from "@testing-library/react";
-import { EventVendorsTab } from "./EventVendorsTab";
+import { EventVendorsTab, SHARED_CLAIM_WARNING, VENDOR_STATUSES } from "./EventVendorsTab";
 import { eventsApi } from "@/api/events";
 import { apiError, eventFixture, renderWithProviders, vendorFixture } from "@/test/eventFixtures";
 
@@ -213,7 +213,7 @@ describe("EventVendorsTab", () => {
     }
     it("warns in the row and in the mark-paid dialog when true", async () => {
       await open1(true);
-      expect(screen.getByText(/Same reference claimed by another vendor — verify before marking paid\./)).toBeInTheDocument();
+      expect(screen.getByText(/Same reference claimed by another vendor â€” verify before marking paid\./)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Mark paid" }));
       expect(screen.getAllByText(/Same reference claimed by another vendor/)).toHaveLength(2);
       expect(screen.getByRole("alert")).toHaveTextContent("verify before marking paid");
@@ -234,5 +234,24 @@ describe("EventVendorsTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Quote subscription" }));
     fireEvent.click(screen.getByRole("button", { name: "Get quote" }));
     expect(await screen.findByText(/already has a subscription covering some of those days/)).toBeInTheDocument();
+  });
+  it("offers only statuses the admin API accepts and filters suspension separately (e2e: SUSPENDED -> 422)", async () => {
+    // The API's pattern: ^(PENDING|ACTIVE|UNPAID|EXPIRED|CANCELLED)$
+    expect(VENDOR_STATUSES).toEqual(["PENDING", "ACTIVE", "UNPAID", "EXPIRED", "CANCELLED"]);
+    renderWithProviders(<EventVendorsTab event={eventFixture} />);
+    await screen.findByText("Tasty Bites");
+    const statusOptions = Array.from((screen.getByLabelText("Status") as HTMLSelectElement).options).map((o) => o.value);
+    expect(statusOptions).not.toContain("SUSPENDED");
+    fireEvent.change(screen.getByLabelText("Suspension"), { target: { value: "suspended" } });
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith("ev-1", expect.objectContaining({ suspended: true, status: undefined, offset: 0 })));
+    fireEvent.change(screen.getByLabelText("Suspension"), { target: { value: "not_suspended" } });
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith("ev-1", expect.objectContaining({ suspended: false })));
+    fireEvent.change(screen.getByLabelText("Suspension"), { target: { value: "" } });
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith("ev-1", expect.objectContaining({ suspended: undefined })));
+  });
+
+  it("shared-claim warning uses a real em dash, not a replacement character", () => {
+    expect(SHARED_CLAIM_WARNING).toContain(String.fromCharCode(0x2014)); // em dash
+    expect(SHARED_CLAIM_WARNING).not.toContain(String.fromCharCode(0xfffd)); // replacement char
   });
 });
