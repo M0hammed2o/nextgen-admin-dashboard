@@ -80,7 +80,7 @@ class ApiClient {
       // Backend returns { error: { message } } — match other apps' parsing.
       const message =
         body?.error?.message || body?.detail || body?.message || `Request failed: ${res.status}`;
-      const err = new Error(message) as Error & { code?: string; status?: number };
+      const err = new Error(message) as Error & { code?: string; status?: number; details?: unknown };
       // Additive, backward-compatible: every existing caller only ever read
       // `.message` (see AdminUsersPage's toast-verbatim convention) -- these
       // two extra fields let a caller distinguish e.g. a scoping 404
@@ -89,6 +89,9 @@ class ApiClient {
       // string-match `.message`. See SalesClientPage for the first use.
       err.code = body?.error?.code;
       err.status = res.status;
+      // Additive: structured error details (e.g. BULK_VALIDATION_FAILED's
+      // details.rows[{row, errors[]}]).
+      err.details = body?.error?.details;
       throw err;
     }
 
@@ -103,6 +106,13 @@ class ApiClient {
   post<T>(path: string, body?: unknown) {
     return this.request<T>(path, {
       method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  put<T>(path: string, body?: unknown) {
+    return this.request<T>(path, {
+      method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     });
   }

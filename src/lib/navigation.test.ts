@@ -51,6 +51,8 @@ const ROUTES: Array<[string, string]> = [
   ["/sales/clients/abc-123", "Client"],
   ["/businesses", "Businesses"],
   ["/businesses/abc-123", "Business Details"],
+  ["/events", "Events"],
+  ["/events/abc-123", "Event Details"],
   ["/onboarding", "Onboarding"],
   ["/onboarding/abc-123", "Onboarding Workspace"],
   ["/admin-users", "Admin Users"],
