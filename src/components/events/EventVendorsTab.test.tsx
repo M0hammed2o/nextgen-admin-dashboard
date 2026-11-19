@@ -179,6 +179,53 @@ describe("EventVendorsTab", () => {
     expect(screen.getByText("Tasty Bites")).toBeInTheDocument();
   });
 
+  describe("flagged offline sales badge", () => {
+    async function render1(v: Record<string, unknown>) {
+      list.mockResolvedValue({ items: [{ ...vendorFixture, ...v }], total: 1 });
+      renderWithProviders(<EventVendorsTab event={eventFixture} />);
+      await screen.findByText("Tasty Bites");
+    }
+    it("shows the badge with the description tooltip when above 0", async () => {
+      await render1({ flagged_offline_orders: 3 });
+      const badge = screen.getByText("3 flagged offline sales");
+      expect(badge).toHaveAttribute("title", expect.stringContaining("Offline sales flagged for review"));
+      expect(badge.getAttribute("title")).toContain("owner acknowledges them in their dashboard");
+    });
+    it("uses the singular for 1", async () => {
+      await render1({ flagged_offline_orders: 1 });
+      expect(screen.getByText("1 flagged offline sale")).toBeInTheDocument();
+    });
+    it("is hidden when 0 or absent", async () => {
+      await render1({ flagged_offline_orders: 0 });
+      expect(screen.queryByText(/flagged offline/)).not.toBeInTheDocument();
+      await render1({ flagged_offline_orders: undefined });
+      expect(screen.queryByText(/flagged offline/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("shared payment claim warning", () => {
+    const sub0 = vendorFixture.subscriptions[0];
+    async function open1(shared: boolean | undefined) {
+      list.mockResolvedValue({ items: [{ ...vendorFixture, subscriptions: [{ ...sub0, payment_claim_reference: "EFT-9", payment_claim_shared: shared }] }], total: 1 });
+      renderWithProviders(<EventVendorsTab event={eventFixture} />);
+      await screen.findByText("Tasty Bites");
+      fireEvent.click(screen.getByRole("button", { name: "Manage Tasty Bites" }));
+    }
+    it("warns in the row and in the mark-paid dialog when true", async () => {
+      await open1(true);
+      expect(screen.getByText(/Same reference claimed by another vendor — verify before marking paid\./)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid" }));
+      expect(screen.getAllByText(/Same reference claimed by another vendor/)).toHaveLength(2);
+      expect(screen.getByRole("alert")).toHaveTextContent("verify before marking paid");
+    });
+    it.each([[false], [undefined]])("shows no warning when %s", async (val) => {
+      await open1(val);
+      expect(screen.queryByText(/Same reference claimed/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Mark paid" }));
+      expect(screen.queryByText(/Same reference claimed/)).not.toBeInTheDocument();
+    });
+  });
+
   it("quote: OVERLAPS_EXISTING shows a friendly message", async () => {
     vi.mocked(eventsApi.quoteSubscription).mockRejectedValue(apiError("overlap", "OVERLAPS_EXISTING"));
     renderWithProviders(<EventVendorsTab event={eventFixture} />);

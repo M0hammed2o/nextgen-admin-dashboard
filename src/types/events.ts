@@ -62,6 +62,7 @@ export interface EventSubscription {
   paid_at: string | null;
   payment_claim_reference?: string | null;
   payment_claimed_at?: string | null;
+  payment_claim_shared?: boolean; // another live subscription at this event claims the same normalised reference
 }
 
 export interface EventVendorItem {
@@ -75,6 +76,7 @@ export interface EventVendorItem {
   stall_code: string | null;
   status: VendorStatus;
   access_level?: AccessLevel;
+  flagged_offline_orders?: number; // unacknowledged offline POS orders flagged for review
   subscriptions: EventSubscription[];
 }
 

@@ -19,6 +19,9 @@ import { eventErrorMessage, formatRands } from "@/lib/events";
 import { toast } from "sonner";
 
 export const VENDOR_PAGE_SIZE = 25;
+export const FLAGGED_OFFLINE_DESCRIPTION =
+  "Offline sales flagged for review (e.g. synced on an unpaid day, synced late, cashier differs from syncer). The vendor's owner acknowledges them in their dashboard.";
+export const SHARED_CLAIM_WARNING = "Same reference claimed by another vendor — verify before marking paid.";
 const VENDOR_STATUSES = ["PENDING", "ACTIVE", "SUSPENDED", "CANCELLED"];
 
 type Dialog_ =
@@ -70,6 +73,11 @@ function SubscriptionRow({ sub, onPay, onVoid }: { sub: EventSubscription; onPay
           <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700">
             Claimed: {sub.payment_claim_reference}
             {sub.payment_claimed_at ? ` (${new Date(sub.payment_claimed_at).toLocaleString()})` : ""}
+          </span>
+        )}
+        {sub.payment_claim_shared === true && (
+          <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-medium">
+            {SHARED_CLAIM_WARNING}
           </span>
         )}
       </span>
@@ -283,6 +291,14 @@ function VendorRows(props: {
         <td className="px-4 py-3">
           <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium">{v.status}</span>
           {!v.business_active && <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-medium">Business inactive</span>}
+          {(v.flagged_offline_orders ?? 0) > 0 && (
+            <span
+              title={FLAGGED_OFFLINE_DESCRIPTION}
+              className="ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 font-medium"
+            >
+              {v.flagged_offline_orders} flagged offline sale{v.flagged_offline_orders === 1 ? "" : "s"}
+            </span>
+          )}
         </td>
         <td className="px-4 py-3 hidden lg:table-cell">{v.access_level ?? "â€”"}</td>
         <td className="px-4 py-3 text-right">
@@ -294,6 +310,9 @@ function VendorRows(props: {
       {open && (
         <tr className="border-b border-border bg-muted/20">
           <td colSpan={6} className="px-4 py-3 space-y-3">
+            {(v.flagged_offline_orders ?? 0) > 0 && (
+              <p className="text-sm text-amber-700">{FLAGGED_OFFLINE_DESCRIPTION}</p>
+            )}
             {suspended && v.suspended_reason && (
               <p className="text-sm text-destructive">Suspended: {v.suspended_reason}</p>
             )}
@@ -394,6 +413,9 @@ function MarkPaidDialog({ eventId, vendor, sub, onClose, onDone }: { eventId: st
             {vendor.business_name}: {formatRands(sub.amount_cents)} for {sub.starts_on} to {sub.ends_on}. Vendor access starts straight away.
           </DialogDescription>
         </DialogHeader>
+        {sub.payment_claim_shared === true && (
+          <p role="alert" className="text-sm text-destructive font-medium">{SHARED_CLAIM_WARNING}</p>
+        )}
         <form onSubmit={(e) => { e.preventDefault(); setError(""); if (!ref.trim()) return setError("A payment reference is required"); mut.mutate(); }} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="pay-ref">Payment reference</Label>
